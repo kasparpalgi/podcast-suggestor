@@ -1,0 +1,153 @@
+@import 'tailwindcss';
+@plugin '@tailwindcss/forms';
+@plugin '@tailwindcss/typography';
+
+/*
+ * Design system — "Playful pop editorial"
+ * Cream canvas, ink outlines, coral primary, playful pop shadows.
+ * Ported from ../lovable/src/styles.css. Tokens: cream, ink, coral, butter, mint, sky, lilac.
+ */
+
+@theme {
+	--color-cream: oklch(0.977 0.016 70.5);
+	--color-ink: oklch(0.245 0.035 304.3);
+	--color-coral: oklch(0.679 0.213 14.7);
+	--color-butter: oklch(0.861 0.159 86.4);
+	--color-mint: oklch(0.813 0.149 168.4);
+	--color-sky: oklch(0.787 0.114 247.6);
+	--color-lilac: oklch(0.754 0.143 295.7);
+
+	--font-display: 'Bricolage Grotesque', system-ui, sans-serif;
+	--font-body: 'DM Sans', system-ui, sans-serif;
+
+	/* Chunky pop shadows (hard offset, no blur) */
+	--shadow-pop-xs: 0 2px 0 0 oklch(0.245 0.035 304.3);
+	--shadow-pop-sm: 0 5px 0 0 oklch(0.245 0.035 304.3);
+	--shadow-pop-md: 0 6px 0 0 oklch(0.245 0.035 304.3);
+	--shadow-pop-lg: 0 8px 0 0 oklch(0.245 0.035 304.3);
+
+	--animate-floaty: floaty 7s ease-in-out infinite;
+	--animate-rise: rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+	--animate-bounce-dot: bounce-dot 0.9s ease-in-out infinite;
+	--animate-wiggle: wiggle 2.4s ease-in-out infinite;
+
+	@keyframes floaty {
+		0%,
+		100% {
+			transform: translateY(0) rotate(0deg);
+		}
+		50% {
+			transform: translateY(-16px) rotate(6deg);
+		}
+	}
+	@keyframes rise {
+		from {
+			opacity: 0;
+			transform: translateY(18px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+	@keyframes bounce-dot {
+		0%,
+		80%,
+		100% {
+			transform: translateY(0);
+		}
+		40% {
+			transform: translateY(-10px);
+		}
+	}
+	@keyframes wiggle {
+		0%,
+		100% {
+			transform: rotate(-3deg);
+		}
+		50% {
+			transform: rotate(3deg);
+		}
+	}
+}
+
+@theme inline {
+	--radius-sm: calc(var(--radius) - 4px);
+	--radius-md: calc(var(--radius) - 2px);
+	--radius-lg: var(--radius);
+	--radius-xl: calc(var(--radius) + 4px);
+	--radius-2xl: calc(var(--radius) + 8px);
+	--radius-3xl: calc(var(--radius) + 12px);
+	--color-background: var(--background);
+	--color-foreground: var(--foreground);
+	--color-card: var(--card);
+	--color-card-foreground: var(--card-foreground);
+	--color-primary: var(--primary);
+	--color-primary-foreground: var(--primary-foreground);
+	--color-secondary: var(--secondary);
+	--color-secondary-foreground: var(--secondary-foreground);
+	--color-muted: var(--muted);
+	--color-muted-foreground: var(--muted-foreground);
+	--color-accent: var(--accent);
+	--color-accent-foreground: var(--accent-foreground);
+	--color-destructive: var(--destructive);
+	--color-destructive-foreground: var(--destructive-foreground);
+	--color-border: var(--border);
+	--color-input: var(--input);
+	--color-ring: var(--ring);
+}
+
+:root {
+	--radius: 1rem;
+	--background: oklch(0.977 0.016 70.5);
+	--foreground: oklch(0.245 0.035 304.3);
+	--card: oklch(1 0 0);
+	--card-foreground: oklch(0.245 0.035 304.3);
+	--primary: oklch(0.679 0.213 14.7);
+	--primary-foreground: oklch(0.977 0.016 70.5);
+	--secondary: oklch(0.861 0.159 86.4);
+	--secondary-foreground: oklch(0.245 0.035 304.3);
+	--muted: oklch(0.945 0.02 75);
+	--muted-foreground: oklch(0.45 0.03 304.3);
+	--accent: oklch(0.813 0.149 168.4);
+	--accent-foreground: oklch(0.245 0.035 304.3);
+	--destructive: oklch(0.577 0.245 27.325);
+	--destructive-foreground: oklch(0.977 0.016 70.5);
+	--border: oklch(0.245 0.035 304.3);
+	--input: oklch(0.245 0.035 304.3);
+	--ring: oklch(0.679 0.213 14.7);
+}
+
+@layer base {
+	* {
+		border-color: var(--color-border);
+	}
+
+	body {
+		background-color: var(--color-background);
+		color: var(--color-foreground);
+		font-family: var(--font-body);
+	}
+
+	/* @tailwindcss/forms sets a gray border via `[type='text']`-style attribute selectors,
+	   which breaks the ink-outline look. Re-qualify with the element to outrank it. */
+	input[type='text'],
+	input[type='email'],
+	input[type='url'],
+	input[type='search'],
+	textarea,
+	select {
+		border-color: var(--color-border);
+	}
+}
+
+/* The pipeline takes ~20s; the loading state leans on motion. Respect the opt-out. */
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+	}
+}
