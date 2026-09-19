@@ -9,13 +9,11 @@ export default defineConfig({
 		tailwindcss(),
 		sveltekit({
 			compilerOptions: {
-				// Force runes mode for the project, except for libraries. Can be removed in svelte 6.
+				// Force runes mode except for libraries (TODO: can be removed in svelte 6)
 				runes: ({ filename }) =>
 					filename.split(/[/\\]/).includes('node_modules') ? undefined : true
 			},
-			// Pin the runtime: adapter-vercel only auto-detects Node 20/22/24, and local
-			// Node is newer than that. Explicit is better for the deployed function anyway.
-			adapter: adapter({ runtime: 'nodejs24.x' })
+			adapter: adapter({ runtime: 'nodejs24.x', maxDuration: 60 })
 		})
 	],
 	test: {
