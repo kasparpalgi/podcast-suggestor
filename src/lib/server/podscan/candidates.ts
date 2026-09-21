@@ -79,12 +79,15 @@ function searchTerm(term: string): Promise<Podcast[]> {
 	});
 }
 
-export async function buildCandidatePool(persona: Persona): Promise<CandidatePool> {
+export async function buildCandidatePool(
+	persona: Persona,
+	terms: string[] = persona.searchTerms
+): Promise<CandidatePool> {
 	if (usingFixtures()) {
 		console.warn('[podscan] FIXTURES ACTIVE — results are hand-built, not from the live API');
 	}
 
-	const termsUsed = persona.searchTerms.slice(0, MAX_TERMS);
+	const termsUsed = terms.slice(0, MAX_TERMS);
 	const results = await Promise.allSettled(termsUsed.map(searchTerm));
 
 	// An unpaid plan 403s every term; surfacing that beats reporting an empty pool
