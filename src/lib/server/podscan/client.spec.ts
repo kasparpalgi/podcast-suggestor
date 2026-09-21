@@ -4,6 +4,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
 	PodscanAuthError,
+	PodscanDailyLimitError,
 	PodscanRateLimitError,
 	PodscanUnavailableError,
 	searchPodcasts
@@ -39,6 +40,22 @@ describe('searchPodcasts — retry only what a retry can fix', () => {
 		// so one submission burned 16 requests instead of 8 and rate-limited the next user
 		const fetchMock = stubFetch(reply(429, { error: 'per_minute_limit_exceeded' }));
 		await expect(searchPodcasts({ query: 'saas' })).rejects.toBeInstanceOf(PodscanRateLimitError);
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+	});
+
+	it('tells the two 429s apart so the user gets the right copy', async () => {
+		stubFetch(reply(429, { error: 'daily_limit_exceeded', retry_after: 82917 }));
+		await expect(searchPodcasts({ query: 'saas' })).rejects.toBeInstanceOf(PodscanDailyLimitError);
+
+		stubFetch(reply(429, { error: 'per_minute_limit_exceeded', retry_after: 33 }));
+		const perMinute = searchPodcasts({ query: 'saas' });
+		await expect(perMinute).rejects.toBeInstanceOf(PodscanRateLimitError);
+		await expect(perMinute).rejects.not.toBeInstanceOf(PodscanDailyLimitError);
+	});
+
+	it('does not retry the daily cap either — it is 23 hours away, not 600ms', async () => {
+		const fetchMock = stubFetch(reply(429, { error: 'daily_limit_exceeded' }));
+		await expect(searchPodcasts({ query: 'saas' })).rejects.toBeInstanceOf(PodscanDailyLimitError);
 		expect(fetchMock).toHaveBeenCalledTimes(1);
 	});
 

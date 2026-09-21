@@ -3,7 +3,12 @@
 import { NoEvidenceError } from './profile/persona';
 import { LlmQuotaError, LlmError } from './llm';
 import { ScoringError } from './scoring';
-import { PodscanAuthError, PodscanRateLimitError, PodscanUnavailableError } from './podscan/client';
+import {
+	PodscanAuthError,
+	PodscanDailyLimitError,
+	PodscanRateLimitError,
+	PodscanUnavailableError
+} from './podscan/client';
 
 export type PipelineError = { code: string; message: string };
 
@@ -19,9 +24,21 @@ const TABLE: [new (...args: never[]) => Error, PipelineError][] = [
 		PodscanAuthError,
 		{ code: 'podcast_auth', message: 'Our podcast data source is not available right now.' }
 	],
+	// Before PodscanRateLimitError: a subclass has to be matched first or the base row
+	// swallows it. "Try again in a minute" on a daily cap is a retry loop that cannot succeed
+	[
+		PodscanDailyLimitError,
+		{
+			code: 'podcast_quota',
+			message: "We've used up today's podcast data allowance. Please try again tomorrow."
+		}
+	],
 	[
 		PodscanRateLimitError,
-		{ code: 'podcast_busy', message: 'Lots of people matching right now. Try again in a minute.' }
+		{
+			code: 'podcast_busy',
+			message: "We're reading the podcast directory too quickly. Try again in a minute."
+		}
 	],
 	[
 		PodscanUnavailableError,

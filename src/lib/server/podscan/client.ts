@@ -13,9 +13,18 @@ const RETRY_BASE_MS = 600;
 export class PodscanAuthError extends Error {
 	name = 'PodscanAuthError';
 }
-/** 429 — trial tier is 100 req/day, 10 req/min. */
+/** 429, per-minute — clears on its own within the minute. */
 export class PodscanRateLimitError extends Error {
 	name = 'PodscanRateLimitError';
+}
+/**
+ * 429, per-day. A separate class because the honest thing to tell the user is completely
+ * different: the per-minute cap clears while they wait, the daily one does not clear until
+ * tomorrow, and telling them to "try again in a minute" sends them into a retry loop that
+ * cannot succeed. Trial tier is 100 req/day and 10 req/min.
+ */
+export class PodscanDailyLimitError extends PodscanRateLimitError {
+	name = 'PodscanDailyLimitError';
 }
 /** Timeout, 5xx, or a body that does not match the contract. */
 export class PodscanUnavailableError extends Error {
@@ -94,7 +103,13 @@ async function request<T>(
 		if (response.status === 401 || response.status === 403) {
 			throw new PodscanAuthError(`Podscan ${response.status}: ${body}`);
 		}
-		if (response.status === 429) throw new PodscanRateLimitError('Podscan rate limit reached.');
+		// Podscan names which cap was hit in the body: `daily_limit_exceeded` (retry_after
+		// ~83000) or `per_minute_limit_exceeded` (retry_after 30-60). They need different copy
+		if (response.status === 429) {
+			throw body.includes('daily_limit_exceeded')
+				? new PodscanDailyLimitError(`Podscan daily limit reached: ${body}`)
+				: new PodscanRateLimitError(`Podscan per-minute limit reached: ${body}`);
+		}
 		throw new PodscanUnavailableError(`Podscan ${response.status}: ${body}`);
 	}
 
