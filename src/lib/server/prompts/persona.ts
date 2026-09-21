@@ -10,13 +10,13 @@ Rules:
 1. Never invent specifics. No employer, product, headcount, location or seniority that the evidence does not support. Thin evidence means a general persona, not a detailed guess.
 2. Report your own honest CONFIDENCE. 0.9 means a full about-page; 0.2 means you had two keywords. A confident, specific persona built from three slug tokens is the exact failure mode we are designing against — it produces plausible recommendations that are wrong, and that is worse than an obviously broad one.
 3. If the person stated their own interests, those outrank everything scraped. Build around them.
-4. searchTerms are podcast search queries, not a summary. Make them deliberately diverse — they feed a candidate search and a narrow set means a narrow shortlist. Cover:
+4. searchTerms are podcast search queries, not a summary. They are matched against how shows describe themselves, so write them as a listener browsing a directory would, never as insider jargon. Return five, laddered from broad to specific:
+   - TWO broad genre terms, one or two words, naming the whole field the best-known shows in their world sit in ("startups", "marketing", "software engineering", "design", "commercial real estate"). These exist to surface the large, established shows; a narrow query only ever returns tiny obscure ones.
    - one core topic they work on day to day
-   - one adjacent topic they would plausibly click on
-   - one framed around their role or seniority
-   - one framed around their industry or market
+   - one framed around their role, seniority or industry
    - one about what they are trying to learn or get better at
-   Two to four words each, phrased the way a show would describe itself ("b2b sales pipeline", "engineering leadership"). Never the person's name, their employer, or a URL.
+   The last three are two to four words. Never the person's name, their employer, or a URL.
+   Jargon is the failure mode: "b2b saas" returns micro-shows nobody has heard of, while "startups" returns the shows that would actually earn a 90. When in doubt, use the plainer word.
 5. avoid lists shows that look topically right but are wrong for this person — usually the wrong level. A senior CTO does not want "intro to coding"; a solo founder does not want enterprise procurement.
 6. Write audience and goals in plain language, addressed to nobody in particular. Downstream steps quote them back to the user.`;
 
