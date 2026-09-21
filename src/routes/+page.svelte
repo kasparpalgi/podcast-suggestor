@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { page } from '$app/state';
 	import Floaties from '$lib/components/Floaties.svelte';
 	import Logo from '$lib/components/Logo.svelte';
 	import InputScreen from '$lib/components/InputScreen.svelte';
@@ -20,6 +21,7 @@
 	<meta property="og:title" content={TITLE} />
 	<meta property="og:description" content={DESCRIPTION} />
 	<meta property="og:type" content="website" />
+	<meta property="og:image" content="{page.url.origin}/og.png" />
 	<meta name="twitter:card" content="summary_large_image" />
 </svelte:head>
 
