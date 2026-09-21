@@ -2,13 +2,21 @@
 
 import { C } from './colors';
 
-export type EmailPick = { name: string; url: string; imageUrl: string; score: number; why: string };
+export type EmailPick = {
+	name: string;
+	url: string;
+	imageUrl: string;
+	score: number;
+	why: string;
+	latest?: string;
+};
 
 export type EmailInput = {
 	picks: EmailPick[];
 	unsubscribeUrl: string;
 	signedUpAt: Date;
 	submittedUrl: string;
+	kind?: 'initial' | 'weekly';
 };
 
 const FONT = "-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif";
@@ -36,13 +44,17 @@ function card(p: EmailPick, i: number): string {
 <td valign="top" style="padding:16px;font-family:${FONT};color:${C.ink};">
 <span style="display:inline-block;background:${C.butter};border:2px solid ${C.ink};border-radius:999px;padding:2px 10px;font-size:12px;font-weight:800;">${p.score}% match</span>
 <div style="font-size:18px;font-weight:800;line-height:1.25;padding:8px 0 6px 0;"><a href="${safe(p.url)}" style="color:${C.ink};text-decoration:none;">${i + 1}. ${esc(p.name)}</a></div>
+${p.latest ? `<div style="font-size:14px;font-weight:700;line-height:1.5;padding-bottom:4px;">New: ${esc(p.latest)}</div>` : ''}
 <div style="font-size:14px;line-height:1.5;color:${C.mutedText};">${esc(p.why)}</div>
 </td></tr></table></td></tr>`;
 }
 
 export function buildEmail(input: EmailInput) {
-	const { picks, unsubscribeUrl, signedUpAt, submittedUrl } = input;
-	const subject = `Your ${picks.length} podcast matches from PodMatch`;
+	const { picks, unsubscribeUrl, signedUpAt, submittedUrl, kind } = input;
+	const subject =
+		kind === 'weekly'
+			? `New episodes from ${picks.length} of your PodMatch shows`
+			: `Your ${picks.length} podcast matches from PodMatch`;
 	const unsub = safe(unsubscribeUrl);
 
 	const html = `<!doctype html>
@@ -68,7 +80,10 @@ You are getting this because you asked PodMatch for podcast picks on ${fmtDate(s
 		'PodMatch - shows you will actually binge',
 		`All 90%+ matches, built from ${submittedUrl}.`,
 		'',
-		...picks.map((p, i) => `${i + 1}. ${p.name} (${p.score}% match)\n   ${p.why}\n   ${p.url}`),
+		...picks.map(
+			(p, i) =>
+				`${i + 1}. ${p.name} (${p.score}% match)\n   ${p.latest ? `New: ${p.latest}\n   ` : ''}${p.why}\n   ${p.url}`
+		),
 		'',
 		`You are getting this because you asked PodMatch for podcast picks on ${fmtDate(signedUpAt)}, and we send a fresh list every week.`,
 		`Unsubscribe: ${unsubscribeUrl}`

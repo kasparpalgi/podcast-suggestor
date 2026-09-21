@@ -62,14 +62,32 @@ export async function saveSignup(
 	return { id: signup.id, unsubscribeToken: signup.unsubscribe_token, repeat: !!existing };
 }
 
-/** For the weekly resend (task 010) */
-export async function getActiveSignups() {
-	const { data, error } = await supabase
+/** For the weekly resend (task 010) - one page, ordered by id so `after` is a stable cursor */
+export async function getActiveSignups(after?: string, limit = 25) {
+	let query = supabase
 		.from('signups')
 		.select(
-			'id, email, persona, unsubscribe_token, matches(podcast_id, podcast_name, podcast_url, position)'
+			'id, email, submitted_url, created_at, unsubscribe_token, matches(podcast_id, podcast_name, podcast_url, podcast_image_url, score, why, position)'
 		)
-		.eq('is_active', true);
+		.eq('is_active', true)
+		.order('id')
+		.limit(limit);
+	if (after) query = query.gt('id', after);
+	const { data, error } = await query;
 	if (error) throw error;
 	return data;
+}
+
+/** Last successful send per signup - the cutoff for "new episode" */
+export async function lastSentAt(ids: string[]): Promise<Map<string, string>> {
+	const { data, error } = await supabase
+		.from('sends')
+		.select('signup_id, created_at')
+		.in('signup_id', ids)
+		.eq('status', 'sent')
+		.order('created_at', { ascending: false });
+	if (error) throw error;
+	const last = new Map<string, string>();
+	for (const row of data) if (!last.has(row.signup_id)) last.set(row.signup_id, row.created_at);
+	return last;
 }
