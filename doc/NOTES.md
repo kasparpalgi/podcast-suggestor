@@ -107,10 +107,40 @@ for progress.
 
 Endpoints: `GET /podcasts/search` (candidates) and `GET /podcasts/{id}/latest/episode`
 (weekly cron). Trial tier is 100 req/day and 10 req/min, so each submission is hard-capped at
-5 searches (a 6th term is dropped), one jittered retry on 429/5xx, and auth errors are never
-retried (an unpaid plan stays unpaid). A fixture mode (`PODSCAN_FIXTURES=1`) exists for dev
-only. **Status:** the key currently gets `403 requires a paid plan`, so match quality against
-real shows is unmeasured.
+5 searches (a 6th term is dropped), one jittered retry on 5xx only, and neither auth errors
+nor 429s are retried (an unpaid plan stays unpaid; a 429 resets 30-60 s out, not 600 ms). A
+fixture mode (`PODSCAN_FIXTURES=1`) exists for dev only. **Status:** live and answering 200.
+
+### Where the quota actually goes (task 017)
+
+The dashboard read **363 calls in a day** after a handful of submissions, which is the whole
+story of this client: one submission is 5 searches, plus 3 more if the pool has to widen, so
+~45 runs — dev reloads, re-submits, the three-persona live scoring spec — is 363. Nothing was
+cached, so every repeat re-bought answers we already had.
+
+Three changes, in order of how much they save:
+
+1. **A TTL cache in front of both endpoints** (`podscan/cache.ts`, 6 h for search, 1 h for
+   latest-episode). It stores the _promise_, so concurrent duplicates collapse into one
+   request too. Failures are never cached — a 429 held for six hours would outlive the minute
+   it belongs to. Re-submitting the same profile during development now costs nothing, which
+   `podscan/live.spec.ts` asserts against the real API.
+2. **A meter on the rate-limit headers.** Podscan answers every request with
+   `x-ratelimit-limit` / `-remaining` (10/min) and `x-concurrency-limit` (5) — we were
+   discarding all of it and guessing at the burn from the dashboard a day later. Every call
+   now logs `call N this process · /path 200 · 7/10 left this minute`.
+3. **A gate that refuses a request we know will 429**, but only while the observation is
+   fresher than the 60 s window — a stale `remaining: 0` would lock the app out permanently.
+   It cannot shape the first burst of 5 parallel searches (they all leave before any answer
+   returns); it stops the expansion round firing into a budget the pool just drained, and the
+   second submission inside the same minute. Those 429s return nothing and still count.
+
+Note `x-concurrency-limit: 5` — the 5 parallel searches sit exactly at the ceiling, so
+`MAX_TERMS` cannot rise without batching.
+
+The cache is per-process, so on Vercel it is per warm lambda: it is a development and
+burst saver, not a shared one. A cross-instance cache would be a Supabase table, which is a
+backend-repo migration and was left out deliberately.
 
 ## 3. The LinkedIn Problem
 

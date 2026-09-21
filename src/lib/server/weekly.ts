@@ -7,18 +7,15 @@ import type { getActiveSignups } from './db/signups';
 type Signup = Awaited<ReturnType<typeof getActiveSignups>>[number];
 export type Outcome = 'sent' | 'skipped' | 'failed';
 
-const latestCache = new Map<string, ReturnType<typeof getLatestEpisode>>();
-
-// shows are shared between signups, so one Podscan call per show per run
-const latest = (id: string) => {
-	if (!latestCache.has(id)) latestCache.set(id, getLatestEpisode(id));
-	return latestCache.get(id)!;
-};
-
 export async function resend(signup: Signup, since: string, dry: boolean): Promise<Outcome> {
 	const cutoff = new Date(since);
 	const matches = [...signup.matches].sort((a, b) => a.position - b.position);
-	const eps = await Promise.all(matches.map((m) => latest(m.podcast_id).catch(() => null)));
+	// Shows are shared between signups, so this is one Podscan call per show per run — the
+	// dedupe lives in the client's cache now, which (unlike the map that was here) expires,
+	// so a warm instance does not answer next week's run with this week's episodes.
+	const eps = await Promise.all(
+		matches.map((m) => getLatestEpisode(m.podcast_id).catch(() => null))
+	);
 
 	const picks = matches.flatMap((m, i) => {
 		const ep = eps[i];

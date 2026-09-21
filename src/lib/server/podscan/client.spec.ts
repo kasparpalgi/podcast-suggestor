@@ -7,8 +7,10 @@ import {
 	PodscanDailyLimitError,
 	PodscanRateLimitError,
 	PodscanUnavailableError,
+	resetQuota,
 	searchPodcasts
 } from './client';
+import { clearCache } from './cache';
 
 vi.mock('../env', () => ({ PODSCAN_API_KEY: 'test-key' }));
 
@@ -17,7 +19,24 @@ const reply = (status: number, body: unknown = {}) =>
 
 const ok = () => reply(200, { podcasts: [] });
 
-afterEach(() => vi.unstubAllGlobals());
+/** A 200 that also reports how much of the 10/min window is left, as the real API does */
+const okWith = (remaining: number) =>
+	new Response(JSON.stringify({ podcasts: [] }), {
+		status: 200,
+		headers: {
+			'content-type': 'application/json',
+			'x-ratelimit-limit': '10',
+			'x-ratelimit-remaining': String(remaining)
+		}
+	});
+
+// Every test below searches 'saas', which is one cache key — without this the first test
+// to succeed would answer all the later ones and they would silently stop testing the client
+afterEach(() => {
+	vi.unstubAllGlobals();
+	clearCache();
+	resetQuota();
+});
 
 /** Returns the fetch spy so a test can count how many requests actually left */
 function stubFetch(...responses: Response[]) {
@@ -68,6 +87,37 @@ describe('searchPodcasts — retry only what a retry can fix', () => {
 	it('gives up with an unavailable error after the one retry also fails', async () => {
 		const fetchMock = stubFetch(reply(503), reply(503));
 		await expect(searchPodcasts({ query: 'saas' })).rejects.toBeInstanceOf(PodscanUnavailableError);
+		expect(fetchMock).toHaveBeenCalledTimes(2);
+	});
+});
+
+describe('per-minute budget gate', () => {
+	it('does not send a request Podscan has already told us it will reject', async () => {
+		const fetchMock = stubFetch(okWith(0));
+		await searchPodcasts({ query: 'saas' });
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+
+		// The expansion round, or a second submission in the same minute. A 429 costs nothing
+		// but still counts against the 100/day, so the honest move is not to send it.
+		await expect(searchPodcasts({ query: 'growth' })).rejects.toBeInstanceOf(PodscanRateLimitError);
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+	});
+
+	it('sends again once the window has had time to reset', async () => {
+		vi.useFakeTimers();
+		const fetchMock = stubFetch(okWith(0));
+		await searchPodcasts({ query: 'saas' });
+		vi.advanceTimersByTime(60_001);
+		// A stale 0 must not outlive its minute, or the app locks itself out for good
+		await expect(searchPodcasts({ query: 'growth' })).resolves.toEqual([]);
+		expect(fetchMock).toHaveBeenCalledTimes(2);
+		vi.useRealTimers();
+	});
+
+	it('still spends the budget it is told it has', async () => {
+		const fetchMock = stubFetch(okWith(4));
+		await searchPodcasts({ query: 'saas' });
+		await expect(searchPodcasts({ query: 'growth' })).resolves.toEqual([]);
 		expect(fetchMock).toHaveBeenCalledTimes(2);
 	});
 });

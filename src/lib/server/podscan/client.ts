@@ -4,10 +4,15 @@
 
 import { z } from 'zod';
 import { PODSCAN_API_KEY } from '../env';
+import { cached } from './cache';
 
 const BASE = 'https://podscan.fm/api/v1';
 const TIMEOUT_MS = 8000;
 const RETRY_BASE_MS = 600;
+/** Podcast search results move on the order of days, not minutes — six hours is free quota. */
+const SEARCH_TTL_MS = 6 * 60 * 60 * 1000;
+/** The weekly cron asks the same show for its latest episode once per signup that picked it. */
+const EPISODE_TTL_MS = 60 * 60 * 1000;
 
 /** 401/403 — including the "API usage requires a paid plan" 403 the whole task is blocked on. */
 export class PodscanAuthError extends Error {
@@ -76,12 +81,66 @@ export type SearchParams = {
 	min_last_episode_posted_at?: string;
 };
 
+/**
+ * Podscan answers every request with its own accounting — `x-ratelimit-limit` / `-remaining`
+ * for the per-minute window and `x-concurrency-limit` (5). We were throwing those away and
+ * guessing at the burn from the dashboard the next day. Counting them here is what turns
+ * "why is it 363?" into a number you can watch while a run happens.
+ */
+export const quota = {
+	/** Requests this process has actually sent — cache hits are not calls. */
+	calls: 0,
+	/** Per-minute allowance left as of `at`, or null before the first answer. */
+	remaining: null as number | null,
+	limit: null as number | null,
+	at: 0
+};
+
+const WINDOW_MS = 60_000;
+
+/**
+ * True only while we hold a *fresh* report of an empty budget. The window resets every
+ * minute, so an observation older than that is worthless — treating a stale 0 as real would
+ * lock the app out long after the budget came back.
+ *
+ * The five parallel searches of a first submission all leave before any answer returns, so
+ * this cannot shape that burst. What it does stop is the request we already know will 429:
+ * the expansion round firing into a budget the pool just drained, and a second submission in
+ * the same minute. Those 429s return nothing but still count against the 100/day.
+ */
+const budgetSpent = (): boolean =>
+	quota.remaining !== null && quota.remaining <= 0 && Date.now() - quota.at < WINDOW_MS;
+
+/** Tests only — module state otherwise lives for the life of the instance. */
+export function resetQuota(): void {
+	Object.assign(quota, { calls: 0, remaining: null, limit: null, at: 0 });
+}
+
+function meter(path: string, status: number, headers: Headers): void {
+	quota.calls++;
+	const remaining = headers.get('x-ratelimit-remaining');
+	const limit = headers.get('x-ratelimit-limit');
+	if (remaining !== null) {
+		quota.remaining = Number(remaining);
+		quota.at = Date.now();
+	}
+	if (limit !== null) quota.limit = Number(limit);
+	console.info(
+		`[podscan] call ${quota.calls} this process · ${path} ${status} · ` +
+			`${quota.remaining ?? '?'}/${quota.limit ?? '?'} left this minute`
+	);
+}
+
 async function request<T>(
 	path: string,
 	query: Record<string, string | number | undefined>,
 	schema: z.ZodType<T>
 ): Promise<T> {
 	if (!PODSCAN_API_KEY) throw new PodscanAuthError('PODSCAN_API_KEY is not set');
+	// Same outcome as sending it and reading the 429 back, minus the spent request
+	if (budgetSpent()) {
+		throw new PodscanRateLimitError('Podscan per-minute budget is spent — request not sent.');
+	}
 
 	const url = new URL(BASE + path);
 	for (const [key, value] of Object.entries(query)) {
@@ -97,6 +156,7 @@ async function request<T>(
 	} catch {
 		throw new PodscanUnavailableError('Podscan did not answer in time.');
 	}
+	meter(path, response.status, response.headers);
 
 	if (!response.ok) {
 		const body = (await response.text()).slice(0, 200);
@@ -146,7 +206,10 @@ async function retrying<T>(
 }
 
 export async function searchPodcasts(params: SearchParams): Promise<Podcast[]> {
-	const { podcasts } = await retrying('/podcasts/search', params, searchResponseSchema);
+	// Key order is fixed by the single call site, so this is stable across runs
+	const { podcasts } = await cached(`search:${JSON.stringify(params)}`, SEARCH_TTL_MS, () =>
+		retrying('/podcasts/search', params, searchResponseSchema)
+	);
 	return podcasts;
 }
 
@@ -161,10 +224,8 @@ const episodeSchema = z.object({
 export async function getLatestEpisode(
 	podcastId: string
 ): Promise<{ title: string; postedAt: Date } | null> {
-	const { episode } = await retrying(
-		`/podcasts/${encodeURIComponent(podcastId)}/latest/episode`,
-		{},
-		episodeSchema
+	const { episode } = await cached(`latest:${podcastId}`, EPISODE_TTL_MS, () =>
+		retrying(`/podcasts/${encodeURIComponent(podcastId)}/latest/episode`, {}, episodeSchema)
 	);
 	const postedAt = episode ? new Date(episode.posted_at) : null;
 	return episode && postedAt && !isNaN(+postedAt)
