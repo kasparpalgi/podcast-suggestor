@@ -49,3 +49,10 @@ Updated questions with my suggestions. I will start probably developing before I
 3. Does the 6-podcast limit need to be exact or is 'up to 6' acceptable if their scraped niche is extremely narrow - Podscan returns fewer results that meet the strict 90%+ match score threshold and we decide there's rather less quality content to send? Suggestion: let the user optionally decide on the next screen where results seen. Default: send more (user sees in email score and can skip the crap).
 4. If a LinkedIn URL strictly blocks scraping then is it acceptable to parse the URL slug for keywords or would you prefer a UI fallback where we show them a message eg. 'We couldn't read your profile, click here to enter your interests'? I would probably even give in the first place the ability to manually enter interests, too (it is my interest to get the best suggestions).
 5. Since the updated flow requires scoring matches, writing personalised explanations and displaying them then this might take 8-10sec to process. Is a polished animated loading state (eg. "Analysing profile..." -> "Scoring matches...") acceptable for the UX? Suggestion: yes.
+
+## Client answers
+
+2. not sure, figure out best workaround!
+3. there isn't a niche that gets less than 90% quality if done right. Every person in this earth has hundreds, even when they work for like timber in canada niche
+4. That's silly, there's easy workarounds, there should be no fallback.
+5. yep!
