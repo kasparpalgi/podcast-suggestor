@@ -13,3 +13,7 @@ export const SUPABASE_URL = publicEnv.PUBLIC_SUPABASE_URL ?? '';
 export const SUPABASE_SECRET_API = env.SUPABASE_SECRET_API ?? '';
 /** Bearer secret for the CSV export (and the weekly cron, task 010) */
 export const CRON_SECRET = env.CRON_SECRET ?? '';
+/** Send-only Resend key */
+export const RESEND_API_KEY = env.RESEND_API_KEY ?? '';
+export const RESEND_VERIFIED_DOMAIN = env.RESEND_VERIFIED_DOMAIN ?? '';
+export const PUBLIC_BASE_URL = (publicEnv.PUBLIC_BASE_URL ?? '').replace(/\/$/, '');

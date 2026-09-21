@@ -57,6 +57,14 @@ confident-looking persona built from nothing, so we ask the user for their inter
 **Decision:** Resend SDK with graceful degradation.
 **Why:** Resend is fast and reliable. The email includes a clean HTML template mapping the 6 podcasts and the unsubscribe link. If the Resend API throws an error (e.g., hard bounce, API down), the backend catches it. Because the primary requirement is _also_ displaying it on-screen, the user still gets their UI result even if the email temporarily fails. Unsubscribing simply toggles an `is_active` boolean in Supabase, excluding them from the weekly Cron.
 
+**Decisions worth knowing (task 009):**
+
+- **Unsubscribe:** the link in the mail opens a confirm page, it never acts on GET (mail scanners prefetch links). The `List-Unsubscribe-Post` one-click header points at `POST /api/unsubscribe`, which acts straight away. Unknown tokens get the same answer as real ones, so there is no way to probe for emails.
+- **CSRF:** `csrf.trustedOrigins: ['*']` in `vite.config.ts`. Mail providers send the one-click POST with no `Origin` header and SvelteKit would 403 it. There are no cookies or sessions, the token is the only credential, so the origin check protects nothing here.
+- **Bounces:** an invalid address sets `is_active = false`, so the weekly cron stops writing to it. Transient errors (429/5xx) retry once, then `sends.status = 'failed'`.
+- **Idempotency key:** kind + signup + ISO week + hash of the show URLs. Resend rejects a reused key with a different body, so a refined re-submit in the same week needs a new key.
+- **DMARC:** links use `PUBLIC_BASE_URL` (podmatch.e-stonia.co.uk) but mail is sent from `RESEND_VERIFIED_DOMAIN` (ezysmart.cc). Different domains, so link and From are not aligned. Fine for a demo, use one domain in production.
+
 ## 5. Fetching a URL a Stranger Typed (SSRF)
 
 **Decision:** `src/lib/server/profile/safeFetch.ts` is the only outbound fetcher for

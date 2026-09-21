@@ -13,6 +13,9 @@ export default defineConfig({
 				runes: ({ filename }) =>
 					filename.split(/[/\\]/).includes('node_modules') ? undefined : true
 			},
+			// Mail providers POST the one-click unsubscribe with no Origin header. No cookies or
+			// sessions here (token is the credential), so the origin check protects nothing
+			csrf: { trustedOrigins: ['*'] },
 			adapter: adapter({ runtime: 'nodejs24.x', maxDuration: 60 })
 		})
 	],
