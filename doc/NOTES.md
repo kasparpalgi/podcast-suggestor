@@ -2,24 +2,58 @@
 
 ## 1. Match Quality & Fit Logic (The 90% Threshold)
 
-**Decision:** A 3-step LLM pipeline using OpenRouter with Structured Outputs (JSON schema,
+**Decision:** A staged LLM pipeline on OpenRouter with Structured Outputs (JSON schema,
 `strict: true`, `provider.require_parameters` so we never route to a provider that ignores
-the schema). Model comes from `OPENROUTER_MODEL`, defaulting to `google/gemini-2.5-flash-lite`
-— cheap and fast for now, swap it once match quality is being tuned.
+the schema). Model comes from `OPENROUTER_MODEL`, default `google/gemini-2.5-flash-lite` —
+cheap and fast, swap it once match quality is tuned.
+**Why:** a single "score these 20 shows 0-100" prompt is vibes: scores cluster at 85-92 and
+the 90% cut means nothing. So the model judges, and our code does the arithmetic.
+
+1. **Persona:** extract who the user is from their page (section 3).
+2. **Candidates:** Podscan search, up to 5 terms in parallel, quality floor (10+ episodes,
+   posted recently), deduped with the terms that found each show.
+3. **Criteria (Stage A):** the LLM writes 4-5 weighted criteria _for this person_, each saying
+   what a 95 looks like and what a 60 looks like, so they can be scored and not just felt.
+4. **Score (Stage B):** batches of 18, parallel, `temperature: 0`. The model returns one
+   0-100 score per criterion, never a total. Shows and criteria are referenced by position
+   (`[1]`, `[2]`), not by id, because models mangle long ids. Zod checks the array length.
+5. **Select (Stage C):** pure TypeScript, no prompt. `weights.ts` computes the weighted sum
+   and rounds once; that same rounded number is shown _and_ tested against 90, so a card can
+   never read "90%" while below the cut. `select.ts` takes the top 6, preferring different
+   standout criteria and max 2 per publisher — but that is a preference: pass 3 drops the
+   cap, because "exactly 6" is the requirement.
+6. **Too few at 90+:** one expansion round (new search terms, score again). Still short →
+   honest shortfall with the next-best shows, never padded (Requirements QA #3).
+
+Each pick carries a one-sentence "why" written to the user directly, and the criteria are
+shown next to the cards so the user can see what "90%" was measured against.
+
+## 2. UX Polish, HTML Stripping & Streaming
+
+**Decision:** Zod validation on the client, Cheerio sanitising on the server, NDJSON streaming
+for progress.
 **Why:**
 
-1. **Extract:** Extract the user's core persona/industry from their URL.
-2. **Fetch candidates:** Query Podscan for ~15-20 broad podcast candidates based on that persona.
-3. **Score & explain:** Pass the user persona + the 20 podcast descriptions back to the LLM. The LLM is instructed to score them (0-100), write a 1-sentence personalised explanation addressing the user directly ("As a B2B SaaS founder, you'll find..."), filter for >= 90%, and return exactly the top 6.
+- **Validation:** users type `domain.com`, not `https://domain.com`. The UI adds `https://`
+  and validates before submit; the server validates again (never trust the client).
+- **HTML stripping:** Podscan descriptions are raw HTML. Cheerio strips them server-side
+  (block tags are separated first, so `<p>a</p><p>b</p>` gives `a b`, not `ab`). Cheaper for
+  the LLM and it means nothing untrusted ever reaches `{@html}`.
+- **Latency:** the pipeline is ~10-20 s. A timer-driven fake loader lies, and worse it can't
+  handle a slow run. `POST /api/match` streams NDJSON (`stage` / `persona` / `result` /
+  `error`) with a blank-line heartbeat every 10 s, and the loading screen follows the real
+  stage. If the stream ends without a `result` the store shows an error, not a stuck spinner.
+  Worst-case call ceilings add up to more than `maxDuration: 60`; typical runs are far below,
+  and the streamed error path covers the rest.
 
-## 2. UX Polish & HTML Stripping
+## Podscan (task 004)
 
-**Decision:** Strict Zod validation on the frontend and regex-based HTML sanitization on the backend.
-**Why:**
-
-- **Validation:** URLs must be valid, but users often type `domain.com` instead of `https://domain.com`. The UI intercepts this auto appends `https://`, and validates before submitting.
-- **HTML striping:** Podscan descriptions often contain messy raw HTML tags (`<p>`, `<a>`, `<br>`). Before passing descriptions to the LLM (which wastes tokens) or the frontend (which breaks layout) I run a standard regex `.replace(/(<([^>]+)>)/gi, "")` to ensure clean, readable text.
-- **Latency handling:** Because the LLM pipeline (estimating) that takes ~10sec the frontend uses an animated skeleton loader with dynamic text ("Analysing profile..." -> "Scoring podcasts...") so the user doesn't bounce.
+Endpoints: `GET /podcasts/search` (candidates) and `GET /podcasts/{id}/latest/episode`
+(weekly cron). Trial tier is 100 req/day and 10 req/min, so each submission is hard-capped at
+5 searches (a 6th term is dropped), one jittered retry on 429/5xx, and auth errors are never
+retried (an unpaid plan stays unpaid). A fixture mode (`PODSCAN_FIXTURES=1`) exists for dev
+only. **Status:** the key currently gets `403 requires a paid plan`, so match quality against
+real shows is unmeasured.
 
 ## 3. The LinkedIn Problem
 
@@ -59,6 +93,7 @@ confident-looking persona built from nothing, so we ask the user for their inter
 
 **Decisions worth knowing (task 009):**
 
+- **Headers:** every mail carries `List-Unsubscribe` (the POST endpoint) and `List-Unsubscribe-Post: List-Unsubscribe=One-Click`, which Gmail/Yahoo want for bulk senders.
 - **Unsubscribe:** the link in the mail opens a confirm page, it never acts on GET (mail scanners prefetch links). The `List-Unsubscribe-Post` one-click header points at `POST /api/unsubscribe`, which acts straight away. Unknown tokens get the same answer as real ones, so there is no way to probe for emails.
 - **CSRF:** `csrf.trustedOrigins: ['*']` in `vite.config.ts`. Mail providers send the one-click POST with no `Origin` header and SvelteKit would 403 it. There are no cookies or sessions, the token is the only credential, so the origin check protects nothing here.
 - **Bounces:** an invalid address sets `is_active = false`, so the weekly cron stops writing to it. Transient errors (429/5xx) retry once, then `sends.status = 'failed'`.

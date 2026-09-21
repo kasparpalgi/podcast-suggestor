@@ -15,33 +15,39 @@ patterns, migrations, indexing, Edge Functions, query performance, pgvector, pg_
 the auto-loaded vendor skills **`supabase`** and **`supabase-postgres-best-practices`**
 (vendored under `.agents/`, pinned in `skills-lock.json`). Do not restate them here.
 
-## Two clients, two keys
+## One client, one key
 
-| File                       | Key (env)                         | Where it may run                          |
-| -------------------------- | --------------------------------- | ----------------------------------------- |
-| `$lib/supabase/client`     | `PUBLIC_SUPABASE_PUBLISHABLE_KEY` | anywhere (browser + server); RLS applies  |
-| `$lib/supabase/server`     | `SUPABASE_SECRET_API`             | server only (`+*.server.ts`, `+server.ts`, `$lib/server/*`) — bypasses RLS |
+| File                   | Key (env)             | Where it may run                                                          |
+| ---------------------- | --------------------- | ------------------------------------------------------------------------- |
+| `$lib/supabase/server` | `SUPABASE_SECRET_API` | server only (`+*.server.ts`, `+server.ts`, `$lib/server/*`); bypasses RLS |
 
-- Both use `PUBLIC_SUPABASE_URL`. Import env via `$env/static/public` (public) and
-  `$env/static/private` (secret) so SvelteKit fails the build if a secret leaks client-side.
-- No auth in this product (out of scope), so **no `@supabase/ssr` / cookie session** is
-  needed — plain `createClient` from `@supabase/supabase-js` is correct. Do not add
-  `@supabase/ssr` unless login is introduced.
+- Uses `PUBLIC_SUPABASE_URL`. Secrets come through `$lib/server/env.ts` (`$env/dynamic`) -
+  never import them into a `.svelte` or client module. A browser client (publishable key)
+  is not built; add one only if something really needs it.
+- No auth in this product, so no `@supabase/ssr` / cookie session. Plain `createClient`.
 
 ## Data model (app side)
 
-Signups live in one table (e.g. `signups`): the submitted URL/email, extracted persona,
-the six results (or a child table), `is_active` for unsubscribe, timestamps. Writes from
-the public form go through the **server** client (users are anonymous). Keep RLS on and
-deny anonymous direct writes — the server key is the only writer.
+Three tables, migration in the backend repo (`20260921133405_initial_schema.sql`):
+
+- `signups` - url, url kind, email, persona (jsonb), `is_active`, unsubscribe `token`
+  (DB default, 32-byte base64url), timestamps.
+- `matches` - the six shows per signup (replaced on each save).
+- `sends` - audit trail: `kind` (`initial`|`weekly`), `status` (`sent`|`failed`). The weekly
+  cutoff is the last `sent` row.
+
+RLS is on with **zero policies** and anon/authenticated are revoked, so the server secret key
+is the only reader/writer (anon select returns 401). There is no browser client - nothing
+needs one. Env is read via `$env/dynamic` in `src/lib/server/env.ts`. Data access lives in
+`src/lib/server/db/`.
 
 ## Unsubscribe & weekly resend
 
-- Unsubscribe toggles `is_active = false` (see `NOTES.md`); the link is `PUBLIC_BASE_URL` +
-  a token route, handled by a server endpoint.
-- Weekly resend selects `is_active = true` signups and re-runs the email step. Implement it
-  as a scheduled endpoint (Vercel cron hitting a protected `+server.ts`) **or** a Supabase
-  Edge Function + `pg_cron` in the backend repo — pick one, keep the secret guarded.
+- Unsubscribe sets `is_active = false`; link is `PUBLIC_BASE_URL` + token, GET shows a
+  confirm page, only POST acts (see `doc/NOTES.md` section 4).
+- Weekly resend runs as a **Vercel cron** (`vercel.json`, Mondays 09:00 UTC) hitting
+  `GET /api/cron/weekly`, guarded by bearer `CRON_SECRET`. It is not pg_cron / Edge Function.
+  Skips (no new episodes) are not written to `sends`, else the cutoff moves and episodes get lost.
 
 ## Backend repo & CLI
 
