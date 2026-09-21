@@ -1,5 +1,6 @@
 import { browser } from '$app/environment';
 import type { Submission } from '$lib/schemas/submission';
+import { CONFIDENCE_FLOOR } from '$lib/confidence';
 import type { Stage } from '$lib/stages';
 import type { MatchEvent } from '$lib/server/pipeline';
 
@@ -17,6 +18,7 @@ const initial = () => ({
 
 function createMatchStore() {
 	const state = $state(initial());
+	let last: Submission | null = null;
 
 	function apply(event: MatchEvent) {
 		if (event.t === 'stage') {
@@ -29,6 +31,7 @@ function createMatchStore() {
 
 	async function submit(values: Submission) {
 		if (!browser || state.loading) return;
+		last = values;
 		Object.assign(state, initial(), { loading: true });
 		try {
 			const response = await fetch('/api/match', {
@@ -63,6 +66,10 @@ function createMatchStore() {
 		}
 	}
 
+	/** Same URL + email, sharper interests */
+	const rerun = (interests: string) => last && submit({ ...last, interests });
+	const reset = () => Object.assign(state, initial());
+
 	return {
 		get loading() {
 			return state.loading;
@@ -88,13 +95,18 @@ function createMatchStore() {
 		get nextBest() {
 			return state.result?.nextBest ?? [];
 		},
+		get lowConfidence() {
+			return !!state.persona && state.persona.confidence < CONFIDENCE_FLOOR;
+		},
 		get hasResult() {
 			return !!state.result;
 		},
 		get error() {
 			return state.error;
 		},
-		submit
+		submit,
+		rerun,
+		reset
 	};
 }
 
