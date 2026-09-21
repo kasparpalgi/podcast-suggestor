@@ -1,0 +1,130 @@
+// Thin typed wrapper over the Podscan REST API. Every response is Zod-parsed: the shape
+// below is what we read, not what the docs promise, and Premium-only fields (reach.email,
+// itunes ratings) are simply absent on lower tiers rather than null.
+
+import { z } from 'zod';
+import { PODSCAN_API_KEY } from '../env';
+
+const BASE = 'https://podscan.fm/api/v1';
+const TIMEOUT_MS = 8000;
+const RETRY_BASE_MS = 600;
+
+/** 401/403 — including the "API usage requires a paid plan" 403 the whole task is blocked on. */
+export class PodscanAuthError extends Error {
+	name = 'PodscanAuthError';
+}
+/** 429 — trial tier is 100 req/day, 10 req/min. */
+export class PodscanRateLimitError extends Error {
+	name = 'PodscanRateLimitError';
+}
+/** Timeout, 5xx, or a body that does not match the contract. */
+export class PodscanUnavailableError extends Error {
+	name = 'PodscanUnavailableError';
+}
+
+const text = z
+	.string()
+	.nullish()
+	.transform((value) => value ?? '');
+
+const categorySchema = z.object({ category_id: text, category_name: text });
+
+export const podcastSchema = z.object({
+	podcast_id: z.string().min(1),
+	podcast_name: z.string().min(1),
+	podcast_url: text,
+	podcast_description: text,
+	podcast_image_url: text,
+	publisher_name: text,
+	last_posted_at: text,
+	podcast_categories: z
+		.array(categorySchema)
+		.nullish()
+		.transform((value) => value ?? []),
+	// Absent on a partial response; a show we cannot prove is dead gets the benefit of the doubt
+	is_active: z
+		.boolean()
+		.nullish()
+		.transform((value) => value ?? true),
+	episode_count: z.number().nullish(),
+	reach: z
+		.object({ audience_size: z.number().nullish() })
+		.nullish()
+		.transform((value) => value ?? null)
+});
+
+export type Podcast = z.infer<typeof podcastSchema>;
+
+export const searchResponseSchema = z.object({ podcasts: z.array(podcastSchema) });
+
+export type SearchParams = {
+	query: string;
+	per_page?: number;
+	language?: string;
+	order_by?: 'best_match' | 'audience_size' | 'episode_count' | 'rating' | 'last_posted_at';
+	order_dir?: 'asc' | 'desc';
+	min_episode_count?: number;
+	min_last_episode_posted_at?: string;
+};
+
+async function request<T>(
+	path: string,
+	query: Record<string, string | number | undefined>,
+	schema: z.ZodType<T>
+): Promise<T> {
+	if (!PODSCAN_API_KEY) throw new PodscanAuthError('PODSCAN_API_KEY is not set');
+
+	const url = new URL(BASE + path);
+	for (const [key, value] of Object.entries(query)) {
+		if (value !== undefined) url.searchParams.set(key, String(value));
+	}
+
+	let response: Response;
+	try {
+		response = await fetch(url, {
+			signal: AbortSignal.timeout(TIMEOUT_MS),
+			headers: { authorization: `Bearer ${PODSCAN_API_KEY}`, accept: 'application/json' }
+		});
+	} catch {
+		throw new PodscanUnavailableError('Podscan did not answer in time.');
+	}
+
+	if (!response.ok) {
+		const body = (await response.text()).slice(0, 200);
+		if (response.status === 401 || response.status === 403) {
+			throw new PodscanAuthError(`Podscan ${response.status}: ${body}`);
+		}
+		if (response.status === 429) throw new PodscanRateLimitError('Podscan rate limit reached.');
+		throw new PodscanUnavailableError(`Podscan ${response.status}: ${body}`);
+	}
+
+	const parsed = schema.safeParse(await response.json().catch(() => null));
+	if (!parsed.success) {
+		throw new PodscanUnavailableError(
+			`Podscan returned an unexpected shape: ${parsed.error.message.slice(0, 200)}`
+		);
+	}
+	return parsed.data;
+}
+
+/** One retry, jittered. Auth errors are never retried — an unpaid plan stays unpaid. */
+async function retrying<T>(
+	path: string,
+	query: Record<string, string | number | undefined>,
+	schema: z.ZodType<T>
+): Promise<T> {
+	try {
+		return await request(path, query, schema);
+	} catch (error) {
+		if (error instanceof PodscanAuthError) throw error;
+		await new Promise((resolve) =>
+			setTimeout(resolve, RETRY_BASE_MS + Math.random() * RETRY_BASE_MS)
+		);
+		return request(path, query, schema);
+	}
+}
+
+export async function searchPodcasts(params: SearchParams): Promise<Podcast[]> {
+	const { podcasts } = await retrying('/podcasts/search', params, searchResponseSchema);
+	return podcasts;
+}

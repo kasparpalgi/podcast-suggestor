@@ -1,0 +1,389 @@
+{
+	"_note": "Hand-built stand-in for GET /podcasts/search, shaped to the real contract. Show names are real public podcasts; ids, audience numbers and dates are synthetic. Descriptions deliberately carry raw feed HTML so the sanitize path is exercised. Only loaded when PODSCAN_FIXTURES=1.",
+	"podcasts": [
+		{
+			"podcast_id": "fx_acquired",
+			"podcast_name": "Acquired",
+			"podcast_url": "https://www.acquired.fm",
+			"podcast_description": "<p>Every company has a story.</p><p>Ben Gilbert and David Rosenthal take you behind the scenes of the <a href=\"https://acquired.fm/episodes\">greatest companies</a> of all time &mdash; how they were built, how they were bought, and what it all means.</p>",
+			"podcast_image_url": "https://example.test/img/acquired.jpg",
+			"publisher_name": "Ben Gilbert &amp; David Rosenthal",
+			"rss_url": "https://feeds.transistor.fm/acquired",
+			"last_posted_at": "2026-09-08T09:00:00Z",
+			"podcast_categories": [
+				{ "category_id": "business", "category_name": "Business" },
+				{ "category_id": "technology", "category_name": "Technology" }
+			],
+			"is_active": true,
+			"episode_count": 214,
+			"reach": { "audience_size": 480000 }
+		},
+		{
+			"podcast_id": "fx_saastr",
+			"podcast_name": "The Official SaaStr Podcast",
+			"podcast_url": "https://www.saastr.com/podcasts",
+			"podcast_description": "<p>The weekly show for <b>B2B SaaS founders</b> and operators.<br/>Jason Lemkin talks pricing, go-to-market, hiring your first VP of Sales, and scaling from $1m to $100m ARR.</p>",
+			"podcast_image_url": "https://example.test/img/saastr.jpg",
+			"publisher_name": "SaaStr",
+			"rss_url": "https://feeds.example.test/saastr",
+			"last_posted_at": "2026-09-15T06:00:00Z",
+			"podcast_categories": [
+				{ "category_id": "business", "category_name": "Business" },
+				{ "category_id": "entrepreneurship", "category_name": "Entrepreneurship" }
+			],
+			"is_active": true,
+			"episode_count": 742,
+			"reach": { "audience_size": 96000 }
+		},
+		{
+			"podcast_id": "fx_lenny",
+			"podcast_name": "Lenny's Podcast",
+			"podcast_url": "https://www.lennyspodcast.com",
+			"podcast_description": "<div>Interviews with world-class product leaders and growth experts.<script>window.track('feed')</script> Lenny Rachitsky unpacks <em>how</em> the best teams build, launch and grow &ndash; in detail you can actually use on Monday morning.</div>",
+			"podcast_image_url": "https://example.test/img/lenny.jpg",
+			"publisher_name": "Lenny Rachitsky",
+			"rss_url": "https://feeds.example.test/lenny",
+			"last_posted_at": "2026-09-17T05:00:00Z",
+			"podcast_categories": [
+				{ "category_id": "business", "category_name": "Business" },
+				{ "category_id": "careers", "category_name": "Careers" }
+			],
+			"is_active": true,
+			"episode_count": 268,
+			"reach": { "audience_size": 310000 }
+		},
+		{
+			"podcast_id": "fx_twenty_vc",
+			"podcast_name": "The Twenty Minute VC",
+			"podcast_url": "https://www.thetwentyminutevc.com",
+			"podcast_description": "<p>Harry Stebbings interviews the world's best venture capitalists and founders on how funding rounds really come together.</p>",
+			"podcast_image_url": "https://example.test/img/20vc.jpg",
+			"publisher_name": "Harry Stebbings",
+			"rss_url": "https://feeds.example.test/20vc",
+			"last_posted_at": "2026-09-16T07:30:00Z",
+			"podcast_categories": [
+				{ "category_id": "business", "category_name": "Business" },
+				{ "category_id": "investing", "category_name": "Investing" }
+			],
+			"is_active": true,
+			"episode_count": 1180,
+			"reach": { "audience_size": 205000 }
+		},
+		{
+			"podcast_id": "fx_indie_hackers",
+			"podcast_name": "The Indie Hackers Podcast",
+			"podcast_url": "https://www.indiehackers.com/podcast",
+			"podcast_description": "<p>Courtland Allen talks with the founders of profitable internet businesses about how they got started, what they're earning, and what they'd do differently.</p>",
+			"podcast_image_url": "https://example.test/img/indiehackers.jpg",
+			"publisher_name": "Indie Hackers",
+			"rss_url": "https://feeds.example.test/indiehackers",
+			"last_posted_at": "2026-08-28T12:00:00Z",
+			"podcast_categories": [
+				{ "category_id": "entrepreneurship", "category_name": "Entrepreneurship" }
+			],
+			"is_active": true,
+			"episode_count": 316,
+			"reach": { "audience_size": 74000 }
+		},
+		{
+			"podcast_id": "fx_a16z",
+			"podcast_name": "a16z Podcast",
+			"podcast_url": "https://a16z.com/podcasts",
+			"podcast_description": "<p>Conversations about technology, innovation and the people building the future &mdash; from the team at Andreessen Horowitz.</p>",
+			"podcast_image_url": "https://example.test/img/a16z.jpg",
+			"publisher_name": "a16z",
+			"rss_url": "https://feeds.example.test/a16z",
+			"last_posted_at": "2026-09-11T14:00:00Z",
+			"podcast_categories": [
+				{ "category_id": "technology", "category_name": "Technology" },
+				{ "category_id": "business", "category_name": "Business" }
+			],
+			"is_active": true,
+			"episode_count": 905,
+			"reach": { "audience_size": 260000 }
+		},
+		{
+			"podcast_id": "fx_masters_scale",
+			"podcast_name": "Masters of Scale",
+			"podcast_url": "https://mastersofscale.com",
+			"podcast_description": "<p>Reid Hoffman tests his theories of how companies grow from zero to a gazillion with the founders who actually did it.</p>",
+			"podcast_image_url": "https://example.test/img/mastersofscale.jpg",
+			"publisher_name": "WaitWhat",
+			"rss_url": "https://feeds.example.test/mastersofscale",
+			"last_posted_at": "2026-09-09T10:00:00Z",
+			"podcast_categories": [{ "category_id": "business", "category_name": "Business" }],
+			"is_active": true,
+			"episode_count": 430,
+			"reach": { "audience_size": 520000 }
+		},
+		{
+			"podcast_id": "fx_my_first_million",
+			"podcast_name": "My First Million",
+			"podcast_url": "https://www.mfmpod.com",
+			"podcast_description": "<p>Sam Parr and Shaan Puri brainstorm new business ideas based on trends and opportunities they spot in the market.</p>",
+			"podcast_image_url": "https://example.test/img/mfm.jpg",
+			"publisher_name": "Hubspot Media",
+			"rss_url": "https://feeds.example.test/mfm",
+			"last_posted_at": "2026-09-18T11:00:00Z",
+			"podcast_categories": [
+				{ "category_id": "entrepreneurship", "category_name": "Entrepreneurship" },
+				{ "category_id": "marketing", "category_name": "Marketing" }
+			],
+			"is_active": true,
+			"episode_count": 680,
+			"reach": { "audience_size": 410000 }
+		},
+		{
+			"podcast_id": "fx_marketing_school",
+			"podcast_name": "Marketing School",
+			"podcast_url": "https://marketingschool.io",
+			"podcast_description": "<p>Neil Patel and Eric Siu deliver a daily dose of actionable digital marketing tactics in under ten minutes.</p>",
+			"podcast_image_url": "https://example.test/img/marketingschool.jpg",
+			"publisher_name": "Neil Patel &amp; Eric Siu",
+			"rss_url": "https://feeds.example.test/marketingschool",
+			"last_posted_at": "2026-09-18T04:00:00Z",
+			"podcast_categories": [{ "category_id": "marketing", "category_name": "Marketing" }],
+			"is_active": true,
+			"episode_count": 2400,
+			"reach": { "audience_size": 150000 }
+		},
+		{
+			"podcast_id": "fx_exit_five",
+			"podcast_name": "B2B Marketing with Dave Gerhardt",
+			"podcast_url": "https://www.exitfive.com",
+			"podcast_description": "<p>Dave Gerhardt on brand, positioning and demand gen for B2B marketers who are tired of generic advice.</p>",
+			"podcast_image_url": "https://example.test/img/exitfive.jpg",
+			"publisher_name": "Exit Five",
+			"rss_url": "https://feeds.example.test/exitfive",
+			"last_posted_at": "2026-09-12T08:00:00Z",
+			"podcast_categories": [
+				{ "category_id": "marketing", "category_name": "Marketing" },
+				{ "category_id": "business", "category_name": "Business" }
+			],
+			"is_active": true,
+			"episode_count": 290,
+			"reach": { "audience_size": 58000 }
+		},
+		{
+			"podcast_id": "fx_syntax",
+			"podcast_name": "Syntax",
+			"podcast_url": "https://syntax.fm",
+			"podcast_description": "<p>Wes Bos and Scott Tolinski serve up tasty treats for web developers &mdash; JavaScript, frameworks, tooling and career talk.</p>",
+			"podcast_image_url": "https://example.test/img/syntax.jpg",
+			"publisher_name": "Sentry",
+			"rss_url": "https://feeds.example.test/syntax",
+			"last_posted_at": "2026-09-17T09:00:00Z",
+			"podcast_categories": [{ "category_id": "technology", "category_name": "Technology" }],
+			"is_active": true,
+			"episode_count": 880,
+			"reach": { "audience_size": 130000 }
+		},
+		{
+			"podcast_id": "fx_changelog",
+			"podcast_name": "The Changelog",
+			"podcast_url": "https://changelog.com/podcast",
+			"podcast_description": "<p>Conversations with the hackers, leaders and innovators of the software world.</p>",
+			"podcast_image_url": "https://example.test/img/changelog.jpg",
+			"publisher_name": "Changelog Media",
+			"rss_url": "https://feeds.example.test/changelog",
+			"last_posted_at": "2026-09-15T16:00:00Z",
+			"podcast_categories": [{ "category_id": "technology", "category_name": "Technology" }],
+			"is_active": true,
+			"episode_count": 640,
+			"reach": { "audience_size": 88000 }
+		},
+		{
+			"podcast_id": "fx_practical_ai",
+			"podcast_name": "Practical AI",
+			"podcast_url": "https://practicalai.fm",
+			"podcast_description": "<p>Making artificial intelligence practical, productive and accessible to everyone &mdash; with Daniel Whitenack and Chris Benson.</p>",
+			"podcast_image_url": "https://example.test/img/practicalai.jpg",
+			"publisher_name": "Changelog Media",
+			"rss_url": "https://feeds.example.test/practicalai",
+			"last_posted_at": "2026-09-14T13:00:00Z",
+			"podcast_categories": [
+				{ "category_id": "technology", "category_name": "Technology" },
+				{ "category_id": "science", "category_name": "Science" }
+			],
+			"is_active": true,
+			"episode_count": 320,
+			"reach": { "audience_size": 64000 }
+		},
+		{
+			"podcast_id": "fx_latent_space",
+			"podcast_name": "Latent Space",
+			"podcast_url": "https://latent.space",
+			"podcast_description": "<p>The AI engineer podcast. <a href=\"https://latent.space/about\"><span>swyx</span> and Alessio</a> interview the people shipping AI products in production.</p>",
+			"podcast_image_url": "https://example.test/img/latentspace.jpg",
+			"publisher_name": "Latent Space",
+			"rss_url": "https://feeds.example.test/latentspace",
+			"last_posted_at": "2026-09-16T18:00:00Z",
+			"podcast_categories": [{ "category_id": "technology", "category_name": "Technology" }],
+			"is_active": true,
+			"episode_count": 165,
+			"reach": { "audience_size": 71000 }
+		},
+		{
+			"podcast_id": "fx_software_eng_daily",
+			"podcast_name": "Software Engineering Daily",
+			"podcast_url": "https://softwareengineeringdaily.com",
+			"podcast_description": "<p>Technical interviews about software topics, published every weekday.</p>",
+			"podcast_image_url": "https://example.test/img/sedaily.jpg",
+			"publisher_name": "Software Engineering Daily",
+			"rss_url": "https://feeds.example.test/sedaily",
+			"last_posted_at": "2026-09-18T02:00:00Z",
+			"podcast_categories": [{ "category_id": "technology", "category_name": "Technology" }],
+			"is_active": true,
+			"episode_count": 1900,
+			"reach": { "audience_size": 112000 }
+		},
+		{
+			"podcast_id": "fx_deep_questions",
+			"podcast_name": "Deep Questions with Cal Newport",
+			"podcast_url": "https://www.thedeeplife.com",
+			"podcast_description": "<p>Cal Newport answers questions about work, focus and building a deep life in a distracted world.</p>",
+			"podcast_image_url": "https://example.test/img/deepquestions.jpg",
+			"publisher_name": "Cal Newport",
+			"rss_url": "https://feeds.example.test/deepquestions",
+			"last_posted_at": "2026-09-15T11:00:00Z",
+			"podcast_categories": [
+				{ "category_id": "careers", "category_name": "Careers" },
+				{ "category_id": "education", "category_name": "Education" }
+			],
+			"is_active": true,
+			"episode_count": 360,
+			"reach": { "audience_size": 190000 }
+		},
+		{
+			"podcast_id": "fx_manager_tools",
+			"podcast_name": "Manager Tools",
+			"podcast_url": "https://www.manager-tools.com",
+			"podcast_description": "<p>Specific, actionable guidance on the craft of management &mdash; one-on-ones, feedback, delegation and coaching.</p>",
+			"podcast_image_url": "https://example.test/img/managertools.jpg",
+			"publisher_name": "Manager Tools",
+			"rss_url": "https://feeds.example.test/managertools",
+			"last_posted_at": "2026-09-08T07:00:00Z",
+			"podcast_categories": [
+				{ "category_id": "careers", "category_name": "Careers" },
+				{ "category_id": "management", "category_name": "Management" }
+			],
+			"is_active": true,
+			"episode_count": 1450,
+			"reach": { "audience_size": 42000 }
+		},
+		{
+			"podcast_id": "fx_hbr_ideacast",
+			"podcast_name": "HBR IdeaCast",
+			"podcast_url": "https://hbr.org/podcasts/ideacast",
+			"podcast_description": "<p>A weekly podcast featuring the leading thinkers in business and management.</p>",
+			"podcast_image_url": "https://example.test/img/ideacast.jpg",
+			"publisher_name": "Harvard Business Review",
+			"rss_url": "https://feeds.example.test/ideacast",
+			"last_posted_at": "2026-09-16T10:00:00Z",
+			"podcast_categories": [
+				{ "category_id": "business", "category_name": "Business" },
+				{ "category_id": "management", "category_name": "Management" }
+			],
+			"is_active": true,
+			"episode_count": 980,
+			"reach": { "audience_size": 350000 }
+		},
+		{
+			"podcast_id": "fx_how_i_built_this",
+			"podcast_name": "How I Built This",
+			"podcast_url": "https://wondery.com/shows/how-i-built-this",
+			"podcast_description": "<p>Guy Raz talks to the entrepreneurs behind some of the world's best known companies about the messy story of how they got there.</p>",
+			"podcast_image_url": "https://example.test/img/hibt.jpg",
+			"publisher_name": "Wondery",
+			"rss_url": "https://feeds.example.test/hibt",
+			"last_posted_at": "2026-09-14T09:00:00Z",
+			"podcast_categories": [
+				{ "category_id": "entrepreneurship", "category_name": "Entrepreneurship" }
+			],
+			"is_active": true,
+			"episode_count": 580,
+			"reach": { "audience_size": 890000 }
+		},
+		{
+			"podcast_id": "fx_business_of_design",
+			"podcast_name": "The Business of Design",
+			"podcast_url": "https://businessofdesign.com",
+			"podcast_description": "<p>Kate Dawson on running a profitable design studio &mdash; pricing, proposals and client relationships.</p>",
+			"podcast_image_url": "https://example.test/img/businessofdesign.jpg",
+			"publisher_name": "Business of Design",
+			"rss_url": "https://feeds.example.test/businessofdesign",
+			"last_posted_at": "2026-09-02T15:00:00Z",
+			"podcast_categories": [
+				{ "category_id": "design", "category_name": "Design" },
+				{ "category_id": "business", "category_name": "Business" }
+			],
+			"is_active": true,
+			"episode_count": 240,
+			"reach": { "audience_size": 21000 }
+		},
+		{
+			"podcast_id": "fx_product_thinking",
+			"podcast_name": "Product Thinking",
+			"podcast_url": "https://productthinkingpodcast.com",
+			"podcast_description": "<p>Melissa Perri answers the hard questions product leaders actually face: strategy, org design and saying no.</p>",
+			"podcast_image_url": "https://example.test/img/productthinking.jpg",
+			"publisher_name": "Melissa Perri",
+			"rss_url": "https://feeds.example.test/productthinking",
+			"last_posted_at": "2026-09-10T13:00:00Z",
+			"podcast_categories": [
+				{ "category_id": "business", "category_name": "Business" },
+				{ "category_id": "management", "category_name": "Management" }
+			],
+			"is_active": true,
+			"episode_count": 210,
+			"reach": { "audience_size": 36000 }
+		},
+		{
+			"podcast_id": "fx_sales_gravy",
+			"podcast_name": "The Sales Gravy Podcast",
+			"podcast_url": "https://salesgravy.com/podcast",
+			"podcast_description": "<p>Jeb Blount on prospecting, objection handling and the daily discipline of selling.</p>",
+			"podcast_image_url": "https://example.test/img/salesgravy.jpg",
+			"publisher_name": "Sales Gravy",
+			"rss_url": "https://feeds.example.test/salesgravy",
+			"last_posted_at": "2026-09-13T06:30:00Z",
+			"podcast_categories": [
+				{ "category_id": "business", "category_name": "Business" },
+				{ "category_id": "sales", "category_name": "Sales" }
+			],
+			"is_active": true,
+			"episode_count": 620,
+			"reach": { "audience_size": 47000 }
+		},
+		{
+			"podcast_id": "fx_dead_show",
+			"podcast_name": "Startup Stories (Archive)",
+			"podcast_url": "https://example.test/startup-stories",
+			"podcast_description": "<p>A founder interview show that stopped publishing years ago. Kept in the fixture so the freshness floor has something to reject.</p>",
+			"podcast_image_url": "https://example.test/img/archive.jpg",
+			"publisher_name": "Archive Media",
+			"rss_url": "https://feeds.example.test/archive",
+			"last_posted_at": "2021-03-04T09:00:00Z",
+			"podcast_categories": [
+				{ "category_id": "entrepreneurship", "category_name": "Entrepreneurship" }
+			],
+			"is_active": false,
+			"episode_count": 88,
+			"reach": { "audience_size": 900 }
+		},
+		{
+			"podcast_id": "fx_thin_show",
+			"podcast_name": "Three Episodes In",
+			"podcast_url": "https://example.test/three-episodes-in",
+			"podcast_description": "<p>A brand new show with almost no back catalogue. Here so the episode-count floor has something to reject.</p>",
+			"podcast_image_url": "https://example.test/img/thin.jpg",
+			"publisher_name": "Unknown",
+			"rss_url": "https://feeds.example.test/thin",
+			"last_posted_at": "2026-09-17T10:00:00Z",
+			"podcast_categories": [{ "category_id": "business", "category_name": "Business" }],
+			"is_active": true,
+			"episode_count": 3,
+			"reach": { "audience_size": null }
+		}
+	]
+}
