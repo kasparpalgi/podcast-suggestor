@@ -19,5 +19,4 @@ export type Profile = Evidence & {
 	lowConfidence: boolean;
 };
 
-/** Confidence at or above this is treated as usable read of the person. */
-export const CONFIDENCE_FLOOR = 0.4;
+export { CONFIDENCE_FLOOR } from '$lib/confidence';

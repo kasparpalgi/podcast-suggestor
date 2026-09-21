@@ -10,17 +10,8 @@
 		"Drop a link and an email — PodMatch reads between the lines and pulls six shows you'll actually binge.";
 
 	import { match } from '$lib/stores/match.svelte';
-	import type { Submission } from '$lib/schemas/submission';
 
-	let reset = $state(false);
-	const view = $derived(
-		match.loading ? 'loading' : match.hasResult && !reset ? 'results' : 'input'
-	);
-
-	async function startMatching(values: Submission) {
-		reset = false;
-		await match.submit(values);
-	}
+	const view = $derived(match.loading ? 'loading' : match.hasResult ? 'results' : 'input');
 </script>
 
 <svelte:head>
@@ -48,11 +39,19 @@
 
 		<main class="my-8">
 			{#if view === 'input'}
-				<InputScreen onsubmit={startMatching} submitError={match.error ?? undefined} />
+				<InputScreen onsubmit={match.submit} submitError={match.error ?? undefined} />
 			{:else if view === 'loading'}
 				<LoadingScreen label={match.label || undefined} stage={match.stage} />
 			{:else}
-				<ResultsScreen onreset={() => (reset = true)} />
+				<ResultsScreen
+					picks={match.picks}
+					criteria={match.criteria}
+					shortfall={match.shortfall}
+					nextBest={match.nextBest}
+					lowConfidence={match.lowConfidence}
+					onreset={match.reset}
+					onrefine={match.rerun}
+				/>
 			{/if}
 		</main>
 
