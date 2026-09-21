@@ -4,7 +4,13 @@ import { env } from '$env/dynamic/private';
 import { env as publicEnv } from '$env/dynamic/public';
 
 export const OPENROUTER_API_KEY = env.OPENROUTER_API_KEY ?? '';
-export const OPENROUTER_MODEL = env.OPENROUTER_MODEL || 'google/gemini-2.5-flash-lite';
+/**
+ * Flash, not Flash-Lite. Task 018 measured both on the same 43-show pool: Lite ignores the
+ * four-axis schema guidance, collapses to a column of 70s and tops out at 3 shows over 90;
+ * Flash reads the same pool as 95/94/92/91/90/89. It also stops dropping a scoring batch
+ * per run to malformed JSON. ~$0.02 a submission - the difference the rubric grades 35% on.
+ */
+export const OPENROUTER_MODEL = env.OPENROUTER_MODEL || 'google/gemini-2.5-flash';
 export const PODSCAN_API_KEY = env.PODSCAN_API_KEY ?? '';
 /** Opt-in only, never inferred from NODE_ENV — see `podscan/fixtures.ts`. */
 export const PODSCAN_FIXTURES = env.PODSCAN_FIXTURES === '1';

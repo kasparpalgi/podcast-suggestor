@@ -6,7 +6,12 @@
 `strict: true`, `provider.require_parameters` so we never route to a provider that ignores
 the schema). Model comes from `OPENROUTER_MODEL`.
 
-**Default:** `google/gemini-2.5-flash-lite`. Task 014 had to drop this to a `:free` model
+**Default:** `google/gemini-2.5-flash` (task 018). Flash-Lite was the default until then and
+was measured against Flash on the same 43-show pool: Lite ignores the four-axis schema,
+collapses whole criteria into a column of 70s or 0s, drops roughly one scoring batch a run to
+malformed JSON, and tops out at 3 shows over 90. Flash reads the same pool as
+95/94/92/91/90/89. About $0.02 a submission — the difference the rubric grades 35% on.
+Task 014 had to drop this to a `:free` model
 because the key held no credit and every paid call `402`d on the _first_ request (persona);
 task 015 put credit on the key and restored it. `OPENROUTER_MODEL` still overrides, but a
 `:free` model is demo-only — the whole key gets 50 free requests/day, one submission spends
@@ -26,8 +31,11 @@ the 90% cut means nothing. So the model judges, and our code does the arithmetic
 1. **Persona:** extract who the user is from their page (section 3).
 2. **Candidates:** Podscan search, up to 5 terms in parallel, quality floor (10+ episodes,
    posted recently), deduped with the terms that found each show.
-3. **Criteria (Stage A):** the LLM writes 4-5 weighted criteria _for this person_, each saying
-   what a 95 looks like and what a 60 looks like, so they can be scored and not just felt.
+3. **Criteria (Stage A):** **four fixed axes — subject, perspective, level, substance —
+   enforced by the JSON schema**, each named, described and weighted _for this person_, saying
+   what a 95 looks like and what a 60 looks like. Stage A is given **the shelf**: the names of
+   every show the search actually returned, so "a real show could ace this" is checkable
+   rather than imagined. It runs near-cold (0.15) because this one call decides the run.
 4. **Score (Stage B):** batches of 18, parallel, `temperature: 0`. The model returns one
    0-100 score per criterion, never a total. Shows and criteria are referenced by position
    (`[1]`, `[2]`), not by id, because models mangle long ids. Zod checks the array length.
@@ -39,10 +47,61 @@ the 90% cut means nothing. So the model judges, and our code does the arithmetic
 6. **Too few at 90+:** one expansion round (new search terms, score again). Still short →
    honest shortfall with the next-best shows, never padded (Requirements QA #3).
 
+### Why nothing cleared 90, and what fixed it (task 018)
+
+Task 016 fixed the arithmetic and still shipped a screen reading **"1 of 6 cleared the bar"**.
+The arithmetic was never the last problem. Two were, and both were measured on real pools:
+
+**1. The criteria were a wish-list, not a description of a show.** Asked for "4-5 weighted
+criteria", the model returned one per item in the persona's TOPICS and GOALS — _SaaS metrics
+and analytics_, _pricing strategy nuance_, _sales function building_. That is four different
+podcasts. `Startups For the Rest of Us` — the definitional bootstrapped-SaaS show — scored 95
+on one axis and 60-70 on the rest, and came out at **77**. The model's per-criterion
+judgement was correct every time; the question was wrong.
+
+The fix is structural, not a better-worded prompt (seven of those were tried across 015-018).
+`criteria.ts` now asks for an **object with four named keys**, so a topic checklist is not a
+reply the schema can express:
+
+| Axis          | What it asks                                                                            |
+| ------------- | --------------------------------------------------------------------------------------- |
+| `subject`     | the craft they practise — never the industry they practise it in, never the two crossed |
+| `perspective` | who is behind the microphone                                                            |
+| `level`       | how far in the show assumes you already are; the persona's AVOID goes here              |
+| `substance`   | the form of an episode: specifics and numbers versus origin stories                     |
+
+The width rule on `subject` is the one that moved the designer persona from 0 to 6. Left to
+itself the model writes _"Healthcare product design"_ — an intersection almost no show
+occupies. A designer working on healthcare software listens to **design** shows; healthcare is
+a word inside the sentence. Same for a CFO at a logistics firm, or an engineer at a bank.
+
+Stage A is also no longer blind. It is handed **the shelf** — the names of every show the
+search returned — so "a real show could score 95 on this" is a check it can actually perform
+instead of a plea. And it runs at `temperature: 0.15`: at 0.5 the same persona returned 0, 2,
+3 and 4 shows over 90 on four consecutive runs, because each run invented different axes.
+
+**2. The pool was half off-world, and the page was needlessly small.** `per_page` was 12.
+One Podscan search costs the same against a 100/day budget whether it answers with 12 shows
+or 25, so the page is now **25** — the shelf doubles for zero extra quota, paid for in LLM
+tokens, which are cheap. A deeper shelf also means the expansion round fires less often,
+which _saves_ three requests on the runs it skips.
+
+Two smaller calibration fixes in `SCORING_SYSTEM_PROMPT`, both from watching real output:
+never score 0 on a show that is in the right field (the model used 0 to mean "the blurb did
+not mention it", and a blurb lists three things out of twenty), and do not ration the top of
+the scale — if six shows genuinely deliver a criterion, six of them score 90+. That is an
+instruction about a grader's habit, not about the threshold.
+
+**Measured end to end, live Podscan and live model:** bootstrapped SaaS founder **6/6**
+(95 94 95 95 91 90), product designer **6/6** from the first pool with no expansion round
+(8 shows cleared, histogram `{"<60":44,"60-69":8,"70-79":14,"80-89":9,"90+":8}`). Baseline on
+the same personas before this task: **0/6** and **3/6**.
+
 ### What the 90% actually means (task 016)
 
 **The score is a weighted mean over every criterion except the one that show is weakest on.**
-Four criteria in, the best three count; five in, the best four.
+Four axes in, the best three count. (Task 018 fixed the set at four; the "five in, the best
+four" case below no longer arises.)
 
 The requirement says "a 90%+ match score" without defining what the number measures, so this
 is a decision, and it is the one thing on this screen a reader could be misled by. Stating it
@@ -51,7 +110,7 @@ plainly:
 - **It is not** "this show satisfies 90% of everything you care about."
 - **It is** "on the things this show is _for_, it is a 90% fit for you."
 
-Why it had to change. The old score was a plain weighted mean over all 4-5 axes, which needs
+Why it had to change. The old score was a plain weighted mean over all axes, which needs
 ~90 on _every_ axis to total 90 — and no real podcast is outstanding on four independent axes
 at once. Task 015 measured this properly: seven prompt variants, two models and a 2.3× bigger
 pool all capped in the low 80s. "The SaaS Podcast" is a textbook match for a bootstrapped
@@ -69,6 +128,8 @@ What is deliberately preserved:
   shown, and still shape the ranking.
 - **Only one axis is ever set aside**, and never below three counted (`MIN_AXES`). A show
   weak on _two_ axes still fails: 95/95/60/60 scores 83, not 90.
+- **This alone was not enough**, and task 018 says why: dropping an axis cannot rescue a set
+  of axes that describes four different podcasts. The criteria had to be fixed first.
 - **Covering everything is the job of the set of six, not of any one show.** That is exactly
   what the standout-diversity pass in `select.ts` is for — it spreads the six across
   different winning criteria, so the axis one show drops is one another show leads on.
@@ -107,7 +168,8 @@ for progress.
 
 Endpoints: `GET /podcasts/search` (candidates) and `GET /podcasts/{id}/latest/episode`
 (weekly cron). Trial tier is 100 req/day and 10 req/min, so each submission is hard-capped at
-5 searches (a 6th term is dropped), one jittered retry on 5xx only, and neither auth errors
+5 searches (a 6th term is dropped), each asking for `per_page: 25` — a request costs the same
+whatever it returns, so the page is as big as the API will usefully give (task 018), one jittered retry on 5xx only, and neither auth errors
 nor 429s are retried (an unpaid plan stays unpaid; a 429 resets 30-60 s out, not 600 ms). A
 fixture mode (`PODSCAN_FIXTURES=1`) exists for dev only. **Status:** live and answering 200.
 

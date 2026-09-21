@@ -54,7 +54,7 @@ function auditWhys(picks: ScoredCandidate[]): void {
 }
 
 export async function rankPodcasts(persona: Persona, pool: CandidatePool): Promise<Selection> {
-	const criteria = await deriveCriteria(persona);
+	const criteria = await deriveCriteria(persona, pool.candidates);
 
 	let scored = await scoreCandidates(persona, criteria, pool.candidates);
 	let llmCalls = 1 + batchCount(pool.candidates.length);

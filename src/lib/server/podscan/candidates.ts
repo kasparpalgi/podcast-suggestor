@@ -8,11 +8,15 @@ import { sanitizeDescription } from './sanitize';
 // The trial tier allows 10 req/min. Five parallel searches leaves headroom for a retry
 // and for the two LLM calls that bracket this step.
 const MAX_TERMS = 5;
-const PER_PAGE = 12;
+// One search request costs the same against a 100/day budget whether it returns 12 shows
+// or 25, and the pool was the binding constraint on "six at 90%+" (task 018): half of a
+// 45-show pool is off-world, so the right shelf is only ~10 deep. Doubling the page
+// doubles the shelf for zero extra quota - it buys LLM tokens instead, which are cheap
+const PER_PAGE = 25;
 const MIN_EPISODES = 10;
 const FRESH_MONTHS = 9; // a show silent since last winter is never a 90% fit
 /** Below this, task 005 cannot honestly find six 90s — it has to widen instead. */
-const HEALTHY_POOL = 20;
+const HEALTHY_POOL = 35;
 
 export type Candidate = {
 	id: string;

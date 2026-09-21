@@ -21,11 +21,13 @@ const { rankPodcasts } = await import('./index');
 const chat = vi.mocked(chatJson);
 const buildPool = vi.mocked(buildCandidatePool);
 
+// The four axes are fixed by the schema — the reply is one object keyed by axis, and
+// `deriveCriteria` flattens it in that order
 const CRITERIA = {
-	criteria: [
-		{ name: 'Operator depth', description: 'x', weight: 0.5 },
-		{ name: 'Bootstrapped POV', description: 'y', weight: 0.5 }
-	]
+	subject: { name: 'Operator depth', description: 'x', weight: 0.25 },
+	perspective: { name: 'Bootstrapped POV', description: 'y', weight: 0.25 },
+	level: { name: 'Founder level', description: 'z', weight: 0.25 },
+	substance: { name: 'Specifics not stories', description: 'w', weight: 0.25 }
 };
 
 const candidatePool = (count: number, prefix = ''): CandidatePool => ({
@@ -34,11 +36,15 @@ const candidatePool = (count: number, prefix = ''): CandidatePool => ({
 	degraded: false
 });
 
-/** Scores show n at `totals[n - 1]`, alternating which axis it wins on. */
+/**
+ * Scores show n at exactly `totals[n - 1]`, alternating which axis it wins on.
+ * `matchScore` drops each show's weakest axis, so three equal scores plus one low one
+ * come back as that number unrounded — and moving the low one moves the standout.
+ */
 const scoresFor = (totals: number[]) => ({
 	results: totals.map((total, index) => ({
 		ref: index + 1,
-		scores: index % 2 ? [total - 4, total + 4] : [total + 4, total - 4],
+		scores: index % 2 ? [total, 10, total, total] : [10, total, total, total],
 		why: `You are moving to usage-based pricing and show ${index + 1} covers that migration.`
 	}))
 });
@@ -67,11 +73,9 @@ describe('rankPodcasts — the happy path', () => {
 	it('surfaces the criteria it scored against', async () => {
 		chat.mockResolvedValueOnce(CRITERIA).mockResolvedValueOnce(scoresFor([96, 95, 94, 93, 92, 91]));
 		const result = await rankPodcasts(persona, candidatePool(6));
-		expect(result.criteria.map((c) => c.name)).toEqual(['Operator depth', 'Bootstrapped POV']);
-		expect(result.picks[0].perCriterion.map((entry) => entry.name)).toEqual([
-			'Operator depth',
-			'Bootstrapped POV'
-		]);
+		const names = ['Operator depth', 'Bootstrapped POV', 'Founder level', 'Specifics not stories'];
+		expect(result.criteria.map((c) => c.name)).toEqual(names);
+		expect(result.picks[0].perCriterion.map((entry) => entry.name)).toEqual(names);
 	});
 
 	it('reports a histogram and the call budget', async () => {
@@ -116,9 +120,13 @@ describe('rankPodcasts — the expansion round', () => {
 	it('aims the new terms at the criteria the near-misses lost points on', async () => {
 		chat
 			.mockResolvedValueOnce(CRITERIA)
-			// evens win on axis 2 odds on axis 1 — these three all lose on "operator depth"
+			// all three lose their points on "operator depth", and land at 88 — near misses
 			.mockResolvedValueOnce({
-				results: [1, 2, 3].map((ref) => ({ ref, scores: [78, 90], why: 'A concrete reason.' }))
+				results: [1, 2, 3].map((ref) => ({
+					ref,
+					scores: [70, 88, 88, 88],
+					why: 'A concrete reason.'
+				}))
 			})
 			.mockResolvedValueOnce({ searchTerms: ['operator interviews'] })
 			.mockResolvedValueOnce(scoresFor([95]));

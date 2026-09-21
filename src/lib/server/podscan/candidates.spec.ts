@@ -143,10 +143,10 @@ describe('buildCandidatePool', () => {
 	});
 
 	it('is not degraded once the pool clears the floor', async () => {
-		const many = Array.from({ length: 25 }, (_, i) => podcast(`p${i}`));
+		const many = Array.from({ length: 40 }, (_, i) => podcast(`p${i}`));
 		search.mockResolvedValue(many);
 		const pool = await buildCandidatePool(persona);
-		expect(pool.candidates).toHaveLength(25);
+		expect(pool.candidates).toHaveLength(40);
 		expect(pool.degraded).toBe(false);
 	});
 
