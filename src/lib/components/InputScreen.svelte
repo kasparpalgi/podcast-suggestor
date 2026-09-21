@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { ArrowRight } from '@lucide/svelte';
 	import Button from './ui/Button.svelte';
 	import Field from './ui/Field.svelte';
@@ -11,13 +12,15 @@
 		onsubmit: (values: Submission) => void;
 		submitting?: boolean;
 		submitError?: string;
+		values?: Submission;
 	};
 
-	let { onsubmit, submitting = false, submitError }: Props = $props();
+	let { onsubmit, submitting = false, submitError, values }: Props = $props();
 
-	let url = $state('');
-	let email = $state('');
-	let interests = $state('');
+	const seed = untrack(() => values);
+	let url = $state(seed?.url ?? '');
+	let email = $state(seed?.email ?? '');
+	let interests = $state(seed?.interests ?? '');
 
 	let urlTouched = $state(false);
 	let urlError = $state<string | undefined>();

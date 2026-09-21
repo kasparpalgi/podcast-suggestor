@@ -1,7 +1,7 @@
 // One table: thrown error -> copy the user reads. No "something went wrong".
 
 import { NoEvidenceError } from './profile/persona';
-import { LlmError } from './llm';
+import { LlmQuotaError, LlmError } from './llm';
 import { ScoringError } from './scoring';
 import { PodscanAuthError, PodscanRateLimitError, PodscanUnavailableError } from './podscan/client';
 
@@ -30,6 +30,14 @@ const TABLE: [new (...args: never[]) => Error, PipelineError][] = [
 	[
 		ScoringError,
 		{ code: 'scoring', message: 'We could not score the shows this time. Please try again.' }
+	],
+	// Before LlmError: a subclass has to be matched first or the base row swallows it
+	[
+		LlmQuotaError,
+		{
+			code: 'llm_quota',
+			message: 'Our matching model is out of quota right now. Please try again later.'
+		}
 	],
 	[LlmError, { code: 'llm', message: 'Our matching model timed out or refused. Please try again.' }]
 ];

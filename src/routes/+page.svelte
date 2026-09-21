@@ -41,7 +41,11 @@
 
 		<main class="my-8">
 			{#if view === 'input'}
-				<InputScreen onsubmit={match.submit} submitError={match.error ?? undefined} />
+				<InputScreen
+					onsubmit={match.submit}
+					submitError={match.error ?? undefined}
+					values={match.submitted ?? undefined}
+				/>
 			{:else if view === 'loading'}
 				<LoadingScreen label={match.label || undefined} stage={match.stage} />
 			{:else}
