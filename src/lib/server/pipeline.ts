@@ -22,9 +22,15 @@ export async function* runPipeline(input: Submission): AsyncGenerator<MatchEvent
 	try {
 		yield stage('reading', 'Reading your page…');
 		const profile = await extractProfile(input);
+		console.info(
+			`[profile] ${profile.source} @ ${profile.confidence} (${profile.text.length} chars)`
+		);
 
 		yield stage('profiling', 'Working out who you are as a listener…');
 		const persona = await buildPersona(profile);
+		console.info(
+			`[persona] ${persona.role} / ${persona.industry} — terms: ${persona.searchTerms.join(', ')}`
+		);
 		yield { t: 'persona', persona };
 
 		yield stage('searching', 'Searching thousands of shows…');
