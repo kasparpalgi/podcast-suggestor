@@ -1,9 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { candidate, criteria, persona, pool } from './testData';
 
-vi.mock('../llm', () => ({ chatJson: vi.fn(), LlmError: class extends Error {} }));
+vi.mock('../llm', () => {
+	class LlmError extends Error {}
+	// Same hierarchy as the real module: the quota error is a subclass
+	return { chatJson: vi.fn(), LlmError, LlmQuotaError: class extends LlmError {} };
+});
 
-const { chatJson } = await import('../llm');
+const { chatJson, LlmQuotaError } = await import('../llm');
 const { BATCH_SIZE, batchCount, scoreCandidates, ScoringError } = await import('./score');
 const chat = vi.mocked(chatJson);
 
@@ -107,6 +111,13 @@ describe('scoreCandidates', () => {
 	it('throws when every batch fails', async () => {
 		chat.mockRejectedValue(new Error('502'));
 		await expect(scoreCandidates(persona, criteria, pool(20))).rejects.toBeInstanceOf(ScoringError);
+	});
+
+	it('rethrows a quota failure, so the user reads the honest reason', async () => {
+		chat.mockRejectedValue(new LlmQuotaError('OpenRouter 402'));
+		await expect(scoreCandidates(persona, criteria, pool(20))).rejects.toBeInstanceOf(
+			LlmQuotaError
+		);
 	});
 
 	it('sends the sanitized description and the terms that surfaced the show', async () => {

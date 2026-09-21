@@ -4,9 +4,24 @@
 
 **Decision:** A staged LLM pipeline on OpenRouter with Structured Outputs (JSON schema,
 `strict: true`, `provider.require_parameters` so we never route to a provider that ignores
-the schema). Model comes from `OPENROUTER_MODEL`, default `google/gemini-2.5-flash-lite` —
-cheap and fast, swap it once match quality is tuned.
-**Why:** a single "score these 20 shows 0-100" prompt is vibes: scores cluster at 85-92 and
+the schema). Model comes from `OPENROUTER_MODEL`.
+
+**Default changed (task 014):** `nex-agi/nex-n2.5-mini:free`. The key has no credits, so every
+paid model — including the previous default `google/gemini-2.5-flash-lite` — answers `402` on
+the _first_ call (persona) and the run dies before it starts. The free tier is a poor substitute:
+**50 requests/day for the whole key** and one submission spends 3-6 of them, so this is a
+demo-only default. Put credit on the key and set `OPENROUTER_MODEL` back to a paid model for
+anything real; the code path is identical.
+
+Two constraints the free tier forced into `llm.ts`:
+
+- `reasoning: { enabled: false }` — every free model that still honours a JSON schema is a
+  reasoning model, and thinking silently spends the whole `max_tokens` before the answer starts.
+- **retry only what a retry can fix.** `chatJson` used to retry every failure, so a 402 cost two
+  calls and two slots. Now only a timeout, a 429 or a 5xx is retried; 4xx is final. A 402/429
+  raises `LlmQuotaError`, whose copy says the model is out of quota instead of blaming a timeout.
+
+**Why the staged pipeline:** a single "score these 20 shows 0-100" prompt is vibes: scores cluster at 85-92 and
 the 90% cut means nothing. So the model judges, and our code does the arithmetic.
 
 1. **Persona:** extract who the user is from their page (section 3).

@@ -5,7 +5,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CandidatePool } from '../podscan/candidates';
 import { candidate, persona, pool } from './testData';
 
-vi.mock('../llm', () => ({ chatJson: vi.fn(), LlmError: class extends Error {} }));
+vi.mock('../llm', () => {
+	class LlmError extends Error {}
+	// Same hierarchy as the real module: the quota error is a subclass
+	return { chatJson: vi.fn(), LlmError, LlmQuotaError: class extends LlmError {} };
+});
 vi.mock('../podscan/candidates', async (importOriginal) => ({
 	...(await importOriginal<typeof import('../podscan/candidates')>()),
 	buildCandidatePool: vi.fn()

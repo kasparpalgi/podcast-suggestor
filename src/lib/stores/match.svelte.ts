@@ -104,6 +104,9 @@ function createMatchStore() {
 		get error() {
 			return state.error;
 		},
+		get submitted() {
+			return last;
+		},
 		submit,
 		rerun,
 		reset

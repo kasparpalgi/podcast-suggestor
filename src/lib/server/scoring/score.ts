@@ -7,7 +7,7 @@
 //   matter - small integer it cannot
 
 import { z } from 'zod';
-import { chatJson } from '../llm';
+import { chatJson, LlmQuotaError } from '../llm';
 import { SCORING_SYSTEM_PROMPT, scoringUserPrompt } from '../prompts/scoring';
 import type { Persona } from '../profile/persona';
 import type { Candidate } from '../podscan/candidates';
@@ -128,7 +128,11 @@ export async function scoreCandidates(
 	if (failed.length) {
 		console.warn(`[scoring] ${failed.length}/${batches.length} batches failed:`, failed[0].reason);
 	}
-	if (!scored.length) throw new ScoringError('Every scoring batch failed.');
+	if (!scored.length) {
+		// A quota failure is the same for every batch, and its copy is the honest one
+		if (failed[0]?.reason instanceof LlmQuotaError) throw failed[0].reason;
+		throw new ScoringError('Every scoring batch failed.');
+	}
 
 	return scored;
 }

@@ -7,7 +7,23 @@ const ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions';
 // One retry - worst case per call. Kept inside 60s Vercel function ceiling (pipeline makes more than one of these)
 const TIMEOUT_MS = 20_000;
 
-export class LlmError extends Error {}
+export class LlmError extends Error {
+	/** HTTP status when the failure came from OpenRouter itself, else undefined */
+	readonly status?: number;
+
+	constructor(message: string, status?: number) {
+		super(message);
+		this.status = status;
+	}
+}
+
+export class LlmQuotaError extends LlmError {}
+
+function isRetryable(error: unknown): boolean {
+	if (!(error instanceof LlmError)) return true; // timeout / network / unparsable reply
+	if (error.status === undefined) return true;
+	return error.status === 429 || error.status >= 500;
+}
 
 type JsonCall<T> = {
 	system: string;
@@ -42,6 +58,7 @@ async function once<T>(call: JsonCall<T>): Promise<T> {
 				{ role: 'system', content: call.system },
 				{ role: 'user', content: call.user }
 			],
+			reasoning: { enabled: false },
 			// Route only to endpoints that actually honour schema (instead of silently falling back to provider that returns prose)
 			provider: { require_parameters: true },
 			response_format: {
@@ -52,7 +69,10 @@ async function once<T>(call: JsonCall<T>): Promise<T> {
 	});
 
 	if (!response.ok) {
-		throw new LlmError(`OpenRouter ${response.status}: ${(await response.text()).slice(0, 300)}`);
+		const detail = `OpenRouter ${response.status}: ${(await response.text()).slice(0, 300)}`;
+		throw response.status === 402 || response.status === 429
+			? new LlmQuotaError(detail, response.status)
+			: new LlmError(detail, response.status);
 	}
 
 	const payload = await response.json();
@@ -75,13 +95,13 @@ async function once<T>(call: JsonCall<T>): Promise<T> {
 	return result.data;
 }
 
-/** One retry - unless caller opted out */
+/** One retry - unless caller opted out or the failure is one a retry cannot fix */
 export async function chatJson<T>(call: JsonCall<T>): Promise<T> {
 	if (!OPENROUTER_API_KEY) throw new LlmError('OPENROUTER_API_KEY is not set');
 	try {
 		return await once(call);
 	} catch (error) {
-		if (call.retry === false) throw error;
+		if (call.retry === false || !isRetryable(error)) throw error;
 		return await once(call);
 	}
 }
