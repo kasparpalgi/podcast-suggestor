@@ -128,3 +128,25 @@ export async function searchPodcasts(params: SearchParams): Promise<Podcast[]> {
 	const { podcasts } = await retrying('/podcasts/search', params, searchResponseSchema);
 	return podcasts;
 }
+
+const episodeSchema = z.object({
+	episode: z
+		.object({ episode_title: text, posted_at: text })
+		.nullish()
+		.transform((value) => value ?? null)
+});
+
+/** Newest episode of a show, or null when it has none. Response shape is not yet checked live */
+export async function getLatestEpisode(
+	podcastId: string
+): Promise<{ title: string; postedAt: Date } | null> {
+	const { episode } = await retrying(
+		`/podcasts/${encodeURIComponent(podcastId)}/latest/episode`,
+		{},
+		episodeSchema
+	);
+	const postedAt = episode ? new Date(episode.posted_at) : null;
+	return episode && postedAt && !isNaN(+postedAt)
+		? { title: episode.episode_title, postedAt }
+		: null;
+}
