@@ -9,12 +9,17 @@
 	const DESCRIPTION =
 		"Drop a link and an email — PodMatch reads between the lines and pulls six shows you'll actually binge.";
 
-	let view = $state<'input' | 'loading' | 'results'>('input');
+	import { match } from '$lib/stores/match.svelte';
+	import type { Submission } from '$lib/schemas/submission';
 
-	// Placeholder transition. Task 006 replaces this with the real NDJSON pipeline stream.
-	function startMatching() {
-		view = 'loading';
-		setTimeout(() => (view = 'results'), 1600);
+	let reset = $state(false);
+	const view = $derived(
+		match.loading ? 'loading' : match.hasResult && !reset ? 'results' : 'input'
+	);
+
+	async function startMatching(values: Submission) {
+		reset = false;
+		await match.submit(values);
 	}
 </script>
 
@@ -43,11 +48,11 @@
 
 		<main class="my-8">
 			{#if view === 'input'}
-				<InputScreen onsubmit={startMatching} />
+				<InputScreen onsubmit={startMatching} submitError={match.error ?? undefined} />
 			{:else if view === 'loading'}
-				<LoadingScreen />
+				<LoadingScreen label={match.label || undefined} stage={match.stage} />
 			{:else}
-				<ResultsScreen onreset={() => (view = 'input')} />
+				<ResultsScreen onreset={() => (reset = true)} />
 			{/if}
 		</main>
 
