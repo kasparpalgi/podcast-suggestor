@@ -12,7 +12,7 @@ import { SCORING_SYSTEM_PROMPT, scoringUserPrompt } from '../prompts/scoring';
 import type { Persona } from '../profile/persona';
 import type { Candidate } from '../podscan/candidates';
 import type { Criterion, ScoredCandidate } from './types';
-import { standoutOf, weightedTotal } from './weights';
+import { matchScore, standoutOf } from './weights';
 
 export const BATCH_SIZE = 18;
 // Batch prompt is ~4k tokens in and ~1.5k out - several times the persona call the
@@ -100,7 +100,7 @@ async function scoreBatch(
 				name: criterion.name,
 				score: Math.round(result.scores[index])
 			})),
-			total: weightedTotal(criteria, result.scores),
+			total: matchScore(criteria, result.scores),
 			why: result.why.trim(),
 			standout: standoutOf(criteria, result.scores)
 		});

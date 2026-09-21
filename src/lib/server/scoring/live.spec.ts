@@ -11,9 +11,14 @@ import { buildPersona } from '../profile/persona';
 import type { Profile } from '../profile/types';
 import { rankPodcasts } from './index';
 
-const profiles: { label: string; profile: Profile }[] = [
+// `minPicks` is the bar this persona must clear. Six for a mainstream professional — that
+// is the requirement, and a run that returns four is a failure, not a note. The marine
+// surveyor is the honest exception: if Podscan genuinely has no six-deep hydrography
+// shelf, the shortfall screen is the right answer and is allowed here
+const profiles: { label: string; minPicks: number; profile: Profile }[] = [
 	{
 		label: 'bootstrapped B2B SaaS founder',
+		minPicks: 6,
 		profile: {
 			url: 'https://example.test/founder',
 			source: 'website',
@@ -24,6 +29,7 @@ const profiles: { label: string; profile: Profile }[] = [
 	},
 	{
 		label: 'product designer',
+		minPicks: 6,
 		profile: {
 			url: 'https://example.test/designer',
 			source: 'website',
@@ -34,6 +40,7 @@ const profiles: { label: string; profile: Profile }[] = [
 	},
 	{
 		label: 'narrow niche — marine survey',
+		minPicks: 0,
 		profile: {
 			url: 'https://example.test/niche',
 			source: 'linkedin-slug',
@@ -47,7 +54,7 @@ const profiles: { label: string; profile: Profile }[] = [
 describe.skipIf(!process.env.LIVE_SCORING)('live scoring run', () => {
 	it.each(profiles)(
 		'$label',
-		async ({ label, profile }) => {
+		async ({ label, minPicks, profile }) => {
 			const persona = await buildPersona(profile);
 			const pool = await buildCandidatePool(persona);
 			const result = await rankPodcasts(persona, pool);
@@ -81,8 +88,13 @@ describe.skipIf(!process.env.LIVE_SCORING)('live scoring run', () => {
 				}
 			}
 
+			// An empty pool made `picks.every(...)` vacuously true, so a total Podscan outage
+			// used to read as a green run. Podscan's trial tier is 10 req/min and this file
+			// spends up to 8 per persona — a 429 here means run the personas one at a time
+			expect(result.stats.poolSize).toBeGreaterThan(0);
 			expect(result.picks.every((pick) => pick.total >= 90)).toBe(true);
 			expect(result.picks.length).toBeLessThanOrEqual(6);
+			expect(result.picks.length).toBeGreaterThanOrEqual(minPicks);
 		},
 		180_000
 	);

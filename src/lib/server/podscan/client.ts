@@ -107,7 +107,13 @@ async function request<T>(
 	return parsed.data;
 }
 
-/** One retry, jittered. Auth errors are never retried — an unpaid plan stays unpaid. */
+/**
+ * One retry, jittered — but only for what a retry can actually fix (the same rule `llm.ts`
+ * follows). An unpaid plan stays unpaid, and a 429 answers `retry-after: 30-60`, so retrying
+ * it 600 ms later cannot succeed. It can only double our burn: five parallel terms plus
+ * three expansion terms is 8 requests against a 10/min trial tier, and retrying each one
+ * made it 16 — the run rate-limited itself and every later submission for the next minute.
+ */
 async function retrying<T>(
 	path: string,
 	query: Record<string, string | number | undefined>,
@@ -116,7 +122,7 @@ async function retrying<T>(
 	try {
 		return await request(path, query, schema);
 	} catch (error) {
-		if (error instanceof PodscanAuthError) throw error;
+		if (error instanceof PodscanAuthError || error instanceof PodscanRateLimitError) throw error;
 		await new Promise((resolve) =>
 			setTimeout(resolve, RETRY_BASE_MS + Math.random() * RETRY_BASE_MS)
 		);

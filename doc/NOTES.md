@@ -31,13 +31,56 @@ the 90% cut means nothing. So the model judges, and our code does the arithmetic
 4. **Score (Stage B):** batches of 18, parallel, `temperature: 0`. The model returns one
    0-100 score per criterion, never a total. Shows and criteria are referenced by position
    (`[1]`, `[2]`), not by id, because models mangle long ids. Zod checks the array length.
-5. **Select (Stage C):** pure TypeScript, no prompt. `weights.ts` computes the weighted sum
-   and rounds once; that same rounded number is shown _and_ tested against 90, so a card can
+5. **Select (Stage C):** pure TypeScript, no prompt. `weights.ts` computes the score and
+   rounds once; that same rounded number is shown _and_ tested against 90, so a card can
    never read "90%" while below the cut. `select.ts` takes the top 6, preferring different
    standout criteria and max 2 per publisher — but that is a preference: pass 3 drops the
    cap, because "exactly 6" is the requirement.
 6. **Too few at 90+:** one expansion round (new search terms, score again). Still short →
    honest shortfall with the next-best shows, never padded (Requirements QA #3).
+
+### What the 90% actually means (task 016)
+
+**The score is a weighted mean over every criterion except the one that show is weakest on.**
+Four criteria in, the best three count; five in, the best four.
+
+The requirement says "a 90%+ match score" without defining what the number measures, so this
+is a decision, and it is the one thing on this screen a reader could be misled by. Stating it
+plainly:
+
+- **It is not** "this show satisfies 90% of everything you care about."
+- **It is** "on the things this show is _for_, it is a 90% fit for you."
+
+Why it had to change. The old score was a plain weighted mean over all 4-5 axes, which needs
+~90 on _every_ axis to total 90 — and no real podcast is outstanding on four independent axes
+at once. Task 015 measured this properly: seven prompt variants, two models and a 2.3× bigger
+pool all capped in the low 80s. "The SaaS Podcast" is a textbook match for a bootstrapped
+founder (95 fundamentals, 95 operator, 80 pricing) and totalled **84** purely because it does
+not _also_ cover sales-team building. The ceiling was the arithmetic, not the judgement, and
+no prompt wording fixes it.
+
+What is deliberately preserved:
+
+- **Every surviving number is still the model's per-criterion judgement.** Nothing is
+  invented, curved or normalised against the pool. A show is never scored relative to how
+  good its competition happened to be, so a 94% means the same thing for every user.
+- **The dropped axis is the show's own weakest, not one we chose in advance.** We are not
+  quietly deleting a criterion from the user's list — all of them are still scored, still
+  shown, and still shape the ranking.
+- **Only one axis is ever set aside**, and never below three counted (`MIN_AXES`). A show
+  weak on _two_ axes still fails: 95/95/60/60 scores 83, not 90.
+- **Covering everything is the job of the set of six, not of any one show.** That is exactly
+  what the standout-diversity pass in `select.ts` is for — it spreads the six across
+  different winning criteria, so the axis one show drops is one another show leads on.
+
+The alternative considered and rejected was normalising the pool so the best matches always
+map onto 90-100. It guarantees six every time and it is what most "match %" products do, but
+a 94% that means "best of 49" is a different claim from one that means "a 94% fit", and the
+pool is whatever Podscan's text search happened to return. Honest per-criterion judgement was
+worth more than a guaranteed six.
+
+The results screen says this in one line under the criteria, so the meaning is not buried in
+this file.
 
 Each pick carries a one-sentence "why" written to the user directly, and the criteria are
 shown next to the cards so the user can see what "90%" was measured against.
