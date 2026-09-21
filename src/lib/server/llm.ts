@@ -18,12 +18,16 @@ type JsonCall<T> = {
 	schema: z.ZodType<T>;
 	temperature?: number;
 	maxTokens?: number;
+	/** Override for calls with a bigger prompt than persona step this default was tuned for */
+	timeoutMs?: number;
+	/** Off for calls the caller can survive losing — retry doubles the worst-case wait */
+	retry?: boolean;
 };
 
 async function once<T>(call: JsonCall<T>): Promise<T> {
 	const response = await fetch(ENDPOINT, {
 		method: 'POST',
-		signal: AbortSignal.timeout(TIMEOUT_MS),
+		signal: AbortSignal.timeout(call.timeoutMs ?? TIMEOUT_MS),
 		headers: {
 			authorization: `Bearer ${OPENROUTER_API_KEY}`,
 			'content-type': 'application/json',
@@ -71,12 +75,13 @@ async function once<T>(call: JsonCall<T>): Promise<T> {
 	return result.data;
 }
 
-/** One retry */
+/** One retry - unless caller opted out */
 export async function chatJson<T>(call: JsonCall<T>): Promise<T> {
 	if (!OPENROUTER_API_KEY) throw new LlmError('OPENROUTER_API_KEY is not set');
 	try {
 		return await once(call);
-	} catch {
+	} catch (error) {
+		if (call.retry === false) throw error;
 		return await once(call);
 	}
 }
