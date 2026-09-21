@@ -23,5 +23,12 @@
 				</li>
 			{/each}
 		</ul>
+		<!-- What the number means, where the number is. The scoring rule is a judgement call
+		     (doc/NOTES.md §1) and the user is entitled to it without reading the repo -->
+		<p class="mt-3 border-t-2 pt-3 text-xs leading-snug text-foreground/55">
+			Each show is scored on every criterion, then rated on all but its weakest one — no single
+			podcast covers everything, so we let each be great at what it's for. The six together span the
+			list.
+		</p>
 	</details>
 {/if}

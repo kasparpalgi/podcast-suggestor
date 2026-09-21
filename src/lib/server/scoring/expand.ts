@@ -6,7 +6,7 @@
 import { z } from 'zod';
 import { chatJson } from '../llm';
 import { EXPANSION_SYSTEM_PROMPT, expansionUserPrompt } from '../prompts/scoring';
-import { buildCandidatePool } from '../podscan/candidates';
+import { buildCandidatePool, candidateKey } from '../podscan/candidates';
 import type { Persona } from '../profile/persona';
 import type { Criterion, ScoredCandidate } from './types';
 import { batchCount, scoreCandidates } from './score';
@@ -80,8 +80,14 @@ export async function expandPool(input: {
 	if (!terms.length) return { scored: [], llmCalls: 1, terms: [] };
 
 	const pool = await buildCandidatePool(input.persona, terms);
-	const known = new Set(input.scored.map((candidate) => candidate.candidate.id));
-	const novel = pool.candidates.filter((candidate) => !known.has(candidate.id));
+	// By name, not id - the widening round is exactly where Podscan hands back the shows we
+	// already scored under a second podcast_id, and re-scoring them costs a batch for nothing
+	const known = new Set(
+		input.scored.map((scored) => candidateKey(scored.candidate.name, scored.candidate.id))
+	);
+	const novel = pool.candidates.filter(
+		(candidate) => !known.has(candidateKey(candidate.name, candidate.id))
+	);
 
 	console.info(`[scoring] expansion: ${terms.join(', ')} -> ${novel.length} new shows`);
 	if (!novel.length) return { scored: [], llmCalls: 1, terms };

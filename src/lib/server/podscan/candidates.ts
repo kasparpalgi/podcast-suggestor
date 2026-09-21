@@ -35,6 +35,21 @@ export type CandidatePool = {
 	degraded: boolean;
 };
 
+/**
+ * Podscan lists the same show under several `podcast_id`s (re-ingested feeds), so an
+ * id-only dedupe let one title appear three times in a single list. The name is the thing
+ * a user would call a duplicate, so that is what we key on — punctuation, case and the
+ * "The " that half the feeds carry and half do not all stripped.
+ */
+export const candidateKey = (name: string, id: string): string => {
+	const normalized = name
+		.toLowerCase()
+		.replace(/^the\s+/, '')
+		.replace(/[^a-z0-9]+/g, ' ')
+		.trim();
+	return normalized || `id:${id}`;
+};
+
 function freshnessCutoff(): string {
 	const date = new Date();
 	date.setMonth(date.getMonth() - FRESH_MONTHS);
@@ -98,24 +113,39 @@ export async function buildCandidatePool(
 	}
 
 	const cutoff = Date.parse(freshnessCutoff());
-	const byId = new Map<string, Candidate>();
+	const byShow = new Map<string, Candidate>();
 	results.forEach((result, index) => {
 		if (result.status !== 'fulfilled') return;
 		for (const podcast of result.value) {
 			if (!isLive(podcast, cutoff)) continue;
-			const existing = byId.get(podcast.podcast_id);
-			if (existing) existing.matchedTerms.push(termsUsed[index]);
-			else byId.set(podcast.podcast_id, toCandidate(podcast, termsUsed[index]));
+			const key = candidateKey(podcast.podcast_name, podcast.podcast_id);
+			const existing = byShow.get(key);
+			// A second term finding the same show is signal; a second *copy* of it is not
+			if (existing) {
+				const term = termsUsed[index];
+				if (!existing.matchedTerms.includes(term)) existing.matchedTerms.push(term);
+			} else {
+				byShow.set(key, toCandidate(podcast, termsUsed[index]));
+			}
 		}
 	});
 
-	const candidates = [...byId.values()];
+	const candidates = [...byShow.values()];
 	const failed = results.filter((result) => result.status === 'rejected').length;
 	const degraded = candidates.length < HEALTHY_POOL || failed > 0;
 
 	console.info(
 		`[podscan] ${termsUsed.length} terms, ${failed} failed -> ${candidates.length} unique candidates${degraded ? ' (degraded)' : ''}`
 	);
+
+	// Every term failing is an outage, not a person with no matching shows. Returning an
+	// empty pool here renders as "0 of 6 cleared the bar" — blaming the user's niche for our
+	// rate limit. The trial tier is 10 req/min and one submission spends up to 8, so two
+	// submissions in the same minute land exactly here
+	if (termsUsed.length && failed === termsUsed.length) {
+		const [first] = results.filter((result) => result.status === 'rejected');
+		throw first.reason;
+	}
 
 	return { candidates, termsUsed, degraded };
 }
