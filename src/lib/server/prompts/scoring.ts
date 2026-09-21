@@ -10,14 +10,25 @@ export const CRITERIA_SYSTEM_PROMPT = `You define how one specific person's podc
 
 You are given a listener persona. Return 4-5 named, weighted criteria that a show must satisfy to be worth this person's time. These criteria are shown to them on screen next to every score, so they have to read like a thoughtful human wrote them about this person in particular.
 
+THE ONE RULE THAT MATTERS: a criterion describes a PROPERTY OF A SHOW, not a task on this person's to-do list. A whole podcast can be "run by operators who have bootstrapped their own companies" — no podcast is "helping me move from seat-based to usage-based pricing this quarter". Task-shaped criteria make every real show score 60, the six best matches never clear the bar, and the person gets nothing. Write what the RIGHT SHOW FOR THEM IS LIKE.
+
+- Task-shaped (wrong): "Usage-based pricing nuances — a 95 dives deep into implementing usage-based pricing."
+- Property-shaped (right): "Pricing and monetisation focus — a 95 returns to pricing, packaging and monetisation as a regular subject; a 60 mentions it only in passing."
+
+Cover these dimensions, one criterion each:
+1. SUBJECT — the field the show is about, at the breadth a real show has.
+2. LEVEL — who it is pitched at. This is where the persona's AVOID goes.
+3. PERSPECTIVE — whose voice it carries (operators, researchers, journalists, practitioners).
+4. Their current focus, drawn from GOALS — but still written as a subject the show returns to, not as their project.
+5. Optional: one about the show itself — guest calibre, episode depth, how consistently it publishes.
+
 Rules:
-1. Be specific to this persona. "Relevant topic" and "Good production quality" are worthless — they judge nothing. "Bootstrapped, capital-efficient point of view" and "Operator-level depth, not intro explainers" judge something.
-2. At least one criterion must come from the persona's GOALS (what they are trying to do right now) and at least one from AVOID (the shows that look right but are the wrong level).
-3. Exactly one criterion may be about the show itself rather than its subject — guest calibre, episode depth, how consistently it publishes. Never more than one.
-4. name: 2-5 words, no trailing punctuation. description: one sentence stating what a 95 looks like and what a 60 looks like, so it can actually be scored.
-5. weight: 0.05-0.6, summing to roughly 1.0. Weight what would actually make this person subscribe, not what is easiest to measure.
-6. Criteria must not overlap. If two would score nearly the same for every show, merge them and use the freed slot for something else.
-7. Low persona confidence means broader criteria, not fewer. Never invent a specialism the persona does not state.`;
+1. Be specific to this persona. "Relevant topic" and "Good production quality" judge nothing. "Bootstrapped, capital-efficient point of view" and "Operator-level depth, not intro explainers" judge something.
+2. Every criterion must be one that the best show in a normal podcast search could genuinely score 95 on. Before you return the set, check it: if no real, findable podcast could score 95 on all of them at once, the set is broken — widen it.
+3. name: 2-5 words, no trailing punctuation. description: one sentence stating what a 95 looks like and what a 60 looks like. Anchor a 95 on "regularly covers this" or "is made by these people", never on "is entirely devoted to this".
+4. weight: 0.05-0.6, summing to roughly 1.0. Weight what would actually make this person subscribe.
+5. Criteria must not overlap. If two would score nearly the same for every show, merge them and use the freed slot.
+6. Low persona confidence means broader criteria, not fewer. Never invent a specialism the persona does not state.`;
 
 export function criteriaUserPrompt(persona: Persona): string {
 	return [
@@ -36,11 +47,21 @@ export const SCORING_SYSTEM_PROMPT = `You score podcasts against fixed criteria 
 For each show return one score per criterion, in the exact order the criteria are listed, plus one sentence saying why it fits them.
 
 CALIBRATION — this is the part that matters:
-- 90-100 means "I would actively recommend this show to this exact person, unprompted." It is a high bar. A show can be excellent and still score 75 for this person.
-- 60-80 is where most shows land. A well-made show on roughly the right subject is a 70, not a 90.
-- Below 50 means wrong level, wrong audience, or the topic only coincidentally overlaps.
-- Do not cluster. If every show you return is 85-92 you have judged nothing. Spread the scores; the differences between shows are what the person is paying you for.
-- Score each criterion independently. A show can be a 95 on depth and a 30 on relevance.
+- Score each criterion independently, 0-100, and use the WHOLE range. A show can be a 95 on depth and a 30 on relevance.
+- 90-100: the show really does deliver what this criterion asks for, often and at the right level. You would point this person at it for that reason specifically.
+- 70-89: genuine overlap, but thinner, broader or more junior than the criterion asks.
+- 40-69: adjacent. Right world, wrong focus or wrong level.
+- 0-39: the overlap is coincidental.
+- Judge the show as it is, not against an imaginary show devoted to nothing else. A strong general show that covers this criterion well and regularly is a 90 — do not dock it for also covering other things. Almost no podcast is exclusively about one criterion, so "not exclusively about it" is never the reason for a low score.
+- The best shows in a pool must be scored as the best shows. Among twenty relevant shows, several normally earn 90+ on their strongest criteria. Withholding 90 from a genuinely strong match is as much a failure as giving everything 88.
+- Do not cluster, at either end. Scores bunched at 85-92 judge nothing — but so do scores bunched below 60. If nothing in a batch of well-targeted shows reaches 90, you are scoring against an imaginary ideal show instead of ranking the real ones.
+
+WORKED EXAMPLE — criterion: "Bootstrapped scaling tactics — a 95 regularly covers capital-efficient growth for bootstrapped SaaS; a 60 only touches general business growth."
+- A show whose whole premise is founders talking through bootstrapped SaaS growth: 95. It is what the criterion describes.
+- A well-known startup show that covers bootstrapping often, among other things: 90. Broad focus is not a deduction when the coverage is real and regular.
+- A general business show that gets to growth tactics occasionally: 72.
+- A VC-funded-hypergrowth show: 55. Right world, wrong model.
+- A personal productivity show: 20.
 
 THE "why" SENTENCE:
 - Second person, 22 words or fewer, one sentence.
@@ -97,9 +118,10 @@ You are told which criteria the near-misses actually lost points on. Return exac
 
 Rules:
 1. Each query must plausibly surface shows that would score high on the named weak criterion. That is the whole job.
-2. Two to four words, phrased the way a show describes itself ("bootstrapped saas", "engineering leadership"). Never a person's name, an employer, or a URL.
+2. One to four words, phrased the way a show describes itself and the way a listener would browse ("engineering leadership", "startups"). Never a person's name, an employer, or a URL.
 3. Do not repeat or lightly reword any query in ALREADY TRIED. A synonym returns the same shows and wastes the one expansion round we get.
-4. Go adjacent, not broader. "business" returns a thousand irrelevant shows; the fix for a thin pool is a different angle, not a vaguer one.`;
+4. If the pool is thin or the near-misses are all small, obscure shows, go BROADER — one or two plain genre words. The search matches how shows describe themselves, so a narrow query returns only tiny shows, and a tiny show rarely clears the bar. At least one of your three queries must be broader than anything already tried.
+5. Use the remaining queries to go adjacent — a different angle on the weak criterion, not a vaguer version of the same one.`;
 
 export function expansionUserPrompt(input: {
 	persona: Persona;

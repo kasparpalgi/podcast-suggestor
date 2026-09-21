@@ -6,14 +6,13 @@
 `strict: true`, `provider.require_parameters` so we never route to a provider that ignores
 the schema). Model comes from `OPENROUTER_MODEL`.
 
-**Default changed (task 014):** `nex-agi/nex-n2.5-mini:free`. The key has no credits, so every
-paid model — including the previous default `google/gemini-2.5-flash-lite` — answers `402` on
-the _first_ call (persona) and the run dies before it starts. The free tier is a poor substitute:
-**50 requests/day for the whole key** and one submission spends 3-6 of them, so this is a
-demo-only default. Put credit on the key and set `OPENROUTER_MODEL` back to a paid model for
-anything real; the code path is identical.
+**Default:** `google/gemini-2.5-flash-lite`. Task 014 had to drop this to a `:free` model
+because the key held no credit and every paid call `402`d on the _first_ request (persona);
+task 015 put credit on the key and restored it. `OPENROUTER_MODEL` still overrides, but a
+`:free` model is demo-only — the whole key gets 50 free requests/day, one submission spends
+3-6, and neither free model that honours a JSON schema could put six shows over the 90% bar.
 
-Two constraints the free tier forced into `llm.ts`:
+Two constraints that testing against the free tier forced into `llm.ts`, both kept:
 
 - `reasoning: { enabled: false }` — every free model that still honours a JSON schema is a
   reasoning model, and thinking silently spends the whole `max_tokens` before the answer starts.
